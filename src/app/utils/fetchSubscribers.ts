@@ -1,24 +1,12 @@
 import { FetchSubscribersResponse } from './types';
 import { logWithColor, fetchAccountInfo } from './hiveClient';
 import { supabase } from './supabaseClient';
-import { json } from 'stream/consumers';
 import { ExtendedAccount } from '@hiveio/dhive';
 
 export const fetchSubscribers = async (community: string, limit = 100): Promise<{ author: string, accountInfo: ExtendedAccount | null }[]> => {
     let lastAccount: string | null = null;
     const authors: string[] = [];
-    const test = await fetch('https://api.deathwing.me', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'bridge.list_subscribers',
-            params: { community, limit },
-            id: 1,
-        }),
-    });
-    const testData = await test.json();
-    console.log(testData);
+
     while (true) {
         logWithColor(`Fetching subscribers with lastAccount: ${lastAccount || 'none'}`, 'purple');
         const response = await fetch('https://api.deathwing.me', {
@@ -72,30 +60,16 @@ export const fetchSubscribers = async (community: string, limit = 100): Promise<
         }
     }
 
-    // Upsert only new authors into the leaderboard
-    if (authors.length > 0) {
-        const authorData = authors.map(author => ({
-            hive_author: author,
-            eth_address: '0x0000000000000000000000000000000000000000',
-        }));
-
-        const { error: upsertError } = await supabase
-            .from('leaderboard')
-            .upsert(authorData, { onConflict: 'hive_author' });
-
-        if (upsertError) {
-            logWithColor(`Error upserting new authors: ${upsertError.message}`, 'red');
-        } else {
-            logWithColor(`Successfully upserted ${authors.length} new authors.`, 'green');
-        }
-    } else {
-        logWithColor('No new authors to upsert.', 'blue');
-    }
-
     // Fetch account information for each author
     const authorsWithInfo = await Promise.all(authors.map(async (author) => {
-        const accountInfo = await fetchAccountInfo(author);
-        return { author, accountInfo };
+        try {
+            const accountInfo = await fetchAccountInfo(author);
+            logWithColor(`Fetched account info for ${author}: ${JSON.stringify(accountInfo)}`, 'blue');
+            return { author, accountInfo };
+        } catch (error) {
+            logWithColor(`Error fetching account info for ${author}: ${error}`, 'red');
+            return { author, accountInfo: null };
+        }
     }));
 
     return authorsWithInfo;

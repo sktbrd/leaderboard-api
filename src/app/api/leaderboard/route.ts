@@ -29,8 +29,8 @@ export async function POST(request: Request) {
         await fetchAndStoreAllData();
 
         return NextResponse.json({ message: 'Data fetched and stored successfully.' }, { status: 200 });
-    } catch (error: any) {
-        logWithColor(`Error in API route: ${error.message}`, 'red');
-        return NextResponse.json({ error: error.message || 'Unknown error' }, { status: 500 });
+    } catch (error: unknown) {
+        logWithColor(`Error in API route: ${(error as Error).message}`, 'red');
+        return NextResponse.json({ error: (error as Error).message || 'Unknown error' }, { status: 500 });
     }
 }

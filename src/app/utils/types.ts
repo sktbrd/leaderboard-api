@@ -1,4 +1,4 @@
-import { Comment, Discussion, ExtendedAccount } from '@hiveio/dhive';
+import { Discussion, ExtendedAccount } from '@hiveio/dhive';
 
 export interface Author {
     hive_author: string;
@@ -16,7 +16,7 @@ export interface Author {
 }
 
 export interface FetchSubscribersResponse {
-    result: [string, any][];
+    result: [string, unknown][];
 }
 
 export interface FetchBlogAuthorsResponse {

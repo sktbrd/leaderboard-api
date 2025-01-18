@@ -33,6 +33,7 @@ export const fetchThreadAuthors = async (author: string, permlink: string): Prom
     const authorsWithInfo = await Promise.all(authors.map(async (author) => {
         try {
             const accountInfo = await fetchAccountInfo(author);
+            logWithColor(`Fetched account info for ${author}: ${JSON.stringify(accountInfo)}`, 'blue');
             return { author, accountInfo };
         } catch (error) {
             logWithColor(`Error fetching account info for ${author}: ${error}`, 'red');

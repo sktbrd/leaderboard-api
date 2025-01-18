@@ -2,7 +2,8 @@ import { Client, ExtendedAccount } from '@hiveio/dhive';
 import { supabase } from '@/app/utils/supabaseClient';
 import { fetchSubscribers } from '@/app/utils/fetchSubscribers';
 import { fetchThreadAuthors } from '@/app/utils/fetchThreadAuthors';
-import { fetchBlogAuthors } from './fetchBlogAuthors';
+// Remove the unused import 'fetchBlogAuthors'
+// import { fetchBlogAuthors } from './fetchBlogAuthors';
 import { Author } from './types';
 
 const HiveClient = new Client('https://api.deathwing.me');
@@ -22,7 +23,7 @@ export const logWithColor = (message: string, color: string) => {
     console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
 };
 
-export async function findPosts(query: string, params: any[]) {
+export async function findPosts(query: string, params: unknown[]) {
     const by = 'get_discussions_by_' + query;
     const posts = await HiveClient.database.call(by, params);
     return posts;
@@ -97,12 +98,41 @@ const upsertAuthorsWithTypes = async (authors: { hive_author: string; types: str
     }
 };
 
+// Helper function to upsert account data into the leaderboard
+const upsertAccountData = async (accounts: ExtendedAccount[]) => {
+    try {
+        const accountData = accounts.map(account => ({
+            hive_author: account.name,
+            hive_balance: parseFloat(account.balance as string),
+            hp_balance: parseFloat(account.vesting_shares as string),
+            hbd_balance: parseFloat(account.hbd_balance as string),
+            hbd_savings_balance: parseFloat(account.savings_hbd_balance as string),
+            has_voted_in_witness: account.witness_votes.length > 0,
+        }));
+
+        logWithColor(`Upserting account data: ${JSON.stringify(accountData)}`, 'blue');
+
+        const { error: upsertError } = await supabase
+            .from('leaderboard')
+            .upsert(accountData, { onConflict: 'hive_author' });
+
+        if (upsertError) {
+            logWithColor(`Error upserting account data: ${upsertError.message}`, 'red');
+        } else {
+            logWithColor(`Successfully upserted account data for ${accounts.length} accounts.`, 'green');
+        }
+    } catch (error) {
+        logWithColor(`Error in upsertAccountData: ${error}`, 'red');
+    }
+};
+
 // Consolidated function
 export const fetchAndStoreAllData = async (): Promise<void> => {
     const community = 'hive-173115';
     const mainFeedAuthor = process.env.NEXT_PUBLIC_MAINFEED_AUTHOR || '';
     const parentPermlink = process.env.NEXT_PUBLIC_PARENT_PERM || '';
-    const tag = process.env.NEXT_PUBLIC_HIVE_COMMUNITY_TAG || '';
+    // Remove the unused variable 'tag'
+    // const tag = process.env.NEXT_PUBLIC_HIVE_COMMUNITY_TAG || '';
 
     try {
         logWithColor('Starting to fetch and store all data...', 'blue');
@@ -114,7 +144,10 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
 
         const threadAuthors = mainFeedAuthor && parentPermlink
             ? await fetchThreadAuthors(mainFeedAuthor, parentPermlink).then((authors) =>
-                authors.map(({ author, accountInfo }) => ({ hive_author: author, types: ['thread author'], account_info: accountInfo }))
+                authors.map(({ author, accountInfo }) => {
+                    logWithColor(`Fetched account info for ${author}: ${JSON.stringify(accountInfo?.name)}`, 'teal');
+                    return { hive_author: author, types: ['thread author'], account_info: accountInfo };
+                })
             )
             : [];
 
@@ -136,6 +169,10 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
 
         // Upsert authors with their types
         await upsertAuthorsWithTypes(mergedAuthors);
+
+        // Upsert account data
+        const accounts = mergedAuthors.map(author => author.account_info).filter(account => account !== null) as ExtendedAccount[];
+        await upsertAccountData(accounts);
 
         logWithColor('Finished fetching and storing all data.', 'green');
     } catch (error) {
