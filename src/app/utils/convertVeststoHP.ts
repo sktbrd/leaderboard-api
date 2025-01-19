@@ -1,3 +1,6 @@
+import { ExtendedAccount } from '@hiveio/dhive';
+import HiveClient from './hiveClient'; // Import HiveClient
+
 export const convertVestingSharesToHivePower = async (
     vestingShares: string,
     delegatedVestingShares: string,
@@ -32,9 +35,6 @@ export const convertVestingSharesToHivePower = async (
     const HPdelegatedToUser = (parseFloat(result.result.total_vesting_fund_hive) * receivedVestingSharesFloat) /
         parseFloat(result.result.total_vesting_shares);
 
-
-
-
     return {
         hivePower: vestHive.toFixed(3),
         DelegatedToSomeoneHivePower: DelegatedToSomeoneHivePower.toFixed(3),
@@ -42,3 +42,45 @@ export const convertVestingSharesToHivePower = async (
         HPdelegatedToUser: HPdelegatedToUser.toFixed(3),
     };
 };
+
+export async function convertVestToHive(amount: number) {
+    const globalProperties = await HiveClient.call('condenser_api', 'get_dynamic_global_properties', []);
+    const totalVestingFund = parseFloat(globalProperties.total_vesting_fund_hive.split(" ")[0]);
+    const totalVestingShares = parseFloat(globalProperties.total_vesting_shares.split(" ")[0]);
+    const vestHive = (totalVestingFund * amount) / totalVestingShares;
+    console.log('Vest to Hive:', vestHive);
+    return vestHive;
+}
+
+export async function calculateUserVoteValue(user: ExtendedAccount) {
+    const { voting_power = 0, vesting_shares = 0, received_vesting_shares = 0, delegated_vesting_shares = 0 } =
+        user || {};
+
+    const client = HiveClient;
+    const reward_fund = await client.database.call('get_reward_fund', ['post']);
+    const feed_history = await client.database.call('get_feed_history', []);
+
+    const { reward_balance, recent_claims } = reward_fund;
+    const { base, quote } = feed_history.current_median_history;
+
+    const baseNumeric = parseFloat(base.split(' ')[0]);
+    const quoteNumeric = parseFloat(quote.split(' ')[0]);
+
+    const hbdMedianPrice = baseNumeric / quoteNumeric;
+
+    const rewardBalanceNumeric = parseFloat(reward_balance.split(' ')[0]);
+    const recentClaimsNumeric = parseFloat(recent_claims);
+
+    const vestingSharesNumeric = parseFloat(String(vesting_shares).split(' ')[0]);
+    const receivedVestingSharesNumeric = parseFloat(String(received_vesting_shares).split(' ')[0]);
+    const delegatedVestingSharesNumeric = parseFloat(String(delegated_vesting_shares).split(' ')[0]);
+
+    const total_vests = vestingSharesNumeric + receivedVestingSharesNumeric - delegatedVestingSharesNumeric;
+    const final_vest = total_vests * 1e6;
+
+    const power = (voting_power * 10000 / 10000) / 50;
+    const rshares = power * final_vest / 10000;
+
+    const estimate = rshares / recentClaimsNumeric * rewardBalanceNumeric * hbdMedianPrice;
+    return estimate;
+}

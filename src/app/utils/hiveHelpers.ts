@@ -75,6 +75,11 @@ export const fetchAccountInfo = async (username: string): Promise<ExtendedAccoun
     }
 };
 
+// Helper function to sanitize json_metadata
+export const sanitizeJsonMetadata = (json_metadata: string): string => {
+    return json_metadata.replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+};
+
 // Helper function to extract eth_address from json_metadata
 export const extractEthAddress = (json_metadata: string): string => {
     if (!json_metadata) {
@@ -82,7 +87,8 @@ export const extractEthAddress = (json_metadata: string): string => {
     }
 
     try {
-        const metadata = JSON.parse(json_metadata);
+        const sanitizedMetadata = sanitizeJsonMetadata(json_metadata);
+        const metadata = JSON.parse(sanitizedMetadata);
         return metadata.extensions?.eth_address || '0x0000000000000000000000000000000000000000';
     } catch (error) {
         logWithColor(`Error parsing json_metadata: ${error}`, 'red');

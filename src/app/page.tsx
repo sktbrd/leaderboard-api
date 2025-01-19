@@ -1,6 +1,10 @@
 import { supabase } from './utils/supabaseClient';
 
 export default async function HomePage() {
+  function formatEthAddress(ethAddress: string) {
+    return `${ethAddress.slice(0, 6)}...${ethAddress.slice(-4)}`;
+  }
+
   const { data: leaderboard, error } = await supabase.from('leaderboard').select('*');
 
   if (error) {
@@ -11,22 +15,25 @@ export default async function HomePage() {
   const sortedLeaderboard = leaderboard.sort((a, b) => (b.hp_balance ?? 0) - (a.hp_balance ?? 0));
 
   return (
-    <main>
-      <h1>Leaderboard</h1>
-      <table>
+    <main style={{ padding: '20px' }}>
+      <center>
+        <h1>Skatehive Leaderboard</h1>
+      </center>
+      <p>Total number of rows: {sortedLeaderboard.length}</p>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
         <thead>
           <tr>
-            <th>Hive Author</th>
-            <th>Max Voting Power (USD)</th>
-            <th>Hive Balance</th>
-            <th>HP Balance</th>
-            <th>HBD Balance</th>
-            <th>HBD Savings Balance</th>
-            <th>ETH Address</th>
-            <th>Gnars Balance</th>
-            <th>Has Voted in Witness</th>
-            <th>ETH Total Balance</th>
-            <th>Last Updated</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Hive Author</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Max VP</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Hive Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>HP Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>HBD Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Savings Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>ETH Ad</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Gnars Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>HasVotedWit</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>ETH Bal</th>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Last Updated</th>
           </tr>
         </thead>
         <tbody>
@@ -43,18 +50,18 @@ export default async function HomePage() {
             eth_total_balance: number | null;
             last_updated: string | null;
           }, index: number) => (
-            <tr key={index}>
-              <td>{row.hive_author}</td>
-              <td>{row.max_voting_power_usd ?? 'N/A'}</td>
-              <td>{row.hive_balance ?? 'N/A'}</td>
-              <td>{row.hp_balance ?? 'N/A'}</td>
-              <td>{row.hbd_balance ?? 'N/A'}</td>
-              <td>{row.hbd_savings_balance ?? 'N/A'}</td>
-              <td>{row.eth_address ?? 'N/A'}</td>
-              <td>{row.gnars_balance ?? 'N/A'}</td>
-              <td>{row.has_voted_in_witness ? 'Yes' : 'No'}</td>
-              <td>{row.eth_total_balance ?? 'N/A'}</td>
-              <td>{row.last_updated ? new Date(row.last_updated).toLocaleString() : 'N/A'}</td>
+            <tr key={index} style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.hive_author}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.max_voting_power_usd ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.hive_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.hp_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.hbd_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.hbd_savings_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.eth_address ? formatEthAddress(row.eth_address) : 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.gnars_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.has_voted_in_witness ? 'Yes' : 'No'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.eth_total_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{row.last_updated ? new Date(row.last_updated).toLocaleString() : 'N/A'}</td>
             </tr>
           ))}
         </tbody>
