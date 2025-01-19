@@ -23,14 +23,19 @@ export async function POST(request: Request) {
         logWithColor(`API called to fetch and store all data for community: ${community}`, 'cyan');
 
         if (!community) {
+            logWithColor('Community parameter is missing', 'red');
             return NextResponse.json({ error: 'Community parameter is missing' }, { status: 400 });
         }
 
         await fetchAndStoreAllData();
 
+        logWithColor('Data fetched and stored successfully.', 'green');
+
         return NextResponse.json({ message: 'Data fetched and stored successfully.' }, { status: 200 });
     } catch (error: unknown) {
         logWithColor(`Error in API route: ${(error as Error).message}`, 'red');
         return NextResponse.json({ error: (error as Error).message || 'Unknown error' }, { status: 500 });
+    } finally {
+        logWithColor('API call completed.', 'blue');
     }
 }

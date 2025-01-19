@@ -7,6 +7,9 @@ export default async function HomePage() {
     return <p>Error: {error.message}</p>;
   }
 
+  // Sort the leaderboard by HP Balance in descending order
+  const sortedLeaderboard = leaderboard.sort((a, b) => (b.hp_balance ?? 0) - (a.hp_balance ?? 0));
+
   return (
     <main>
       <h1>Leaderboard</h1>
@@ -27,7 +30,7 @@ export default async function HomePage() {
           </tr>
         </thead>
         <tbody>
-          {leaderboard.map((row: {
+          {sortedLeaderboard.map((row: {
             hive_author: string;
             max_voting_power_usd: number | null;
             hive_balance: number | null;
