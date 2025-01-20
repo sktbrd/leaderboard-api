@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient'; // Use the existing Supabase client
 import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveHelpers';
 import { DataBaseAuthor } from './types';
 import { convertVestingSharesToHivePower, calculateUserVoteValue } from './convertVeststoHP';
+import { fetchSubscribers } from './fetchSubscribers';
 
 const HiveClient = new Client('https://api.deathwing.me');
 export default HiveClient;
@@ -64,15 +65,15 @@ export const getDatabaseData = async () => {
 
 export const fetchAndStoreAllData = async (progressCallback?: (current: number, total: number) => void): Promise<void> => {
     const startTime = Date.now(); // Start time
-
+    const community = 'hive-173115';
     try {
         logWithColor('Starting to fetch and store all data...', 'blue');
 
         // Fetch subscribers
-        // const subscribers = await fetchSubscribers(community);
+        const subscribers = await fetchSubscribers(community);
 
         // dummy subscribers for testing 
-        const subscribers = [{ hive_author: 'xvlad' }];
+        // const subscribers = [{ hive_author: 'xvlad' }];
         logWithColor(`Fetched ${subscribers.length} subscribers.`, 'blue');
         // Upsert authors
         await upsertAuthors(subscribers);
