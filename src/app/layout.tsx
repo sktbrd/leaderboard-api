@@ -23,10 +23,6 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        {/* 
-          Note: We'll now pass initialState to a Client Provider 
-          that you import from a *client* file.
-        */}
         <Provider initialState={initialState}>
           {children}
         </Provider>
