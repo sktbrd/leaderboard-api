@@ -4,6 +4,7 @@ import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveHelpers
 import { DataBaseAuthor } from './types';
 import { convertVestingSharesToHivePower, calculateUserVoteValue } from './convertVeststoHP';
 import { fetchSubscribers } from './fetchSubscribers';
+import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethHelpers';
 
 const HiveClient = new Client('https://api.deathwing.me');
 export default HiveClient;
@@ -113,22 +114,37 @@ export const fetchAndUpsertAccountData = async (subscribers: { hive_author: stri
 
                 const voting_value = await calculateUserVoteValue(accountInfo); // Calculate voting value
 
+                if (extractEthAddress(accountInfo.json_metadata) === '0x0000000000000000000000000000000000000000') {
+                    continue; // Skip if the user has no Ethereum address
+                } else {
+                    const eth_address = extractEthAddress(accountInfo.json_metadata);
+                    try {
+                        // Fetch balances and votes on the server-side
+                        const gnars_balance = await readGnarsBalance(eth_address);
+                        const gnars_votes = await readGnarsVotes(eth_address);
+                        const skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
 
-
-                const accountData = {
-                    hive_author: accountInfo.name,
-                    hive_balance: parseFloat((accountInfo.balance as Asset).toString().split(" ")[0]),
-                    hp_balance: parseFloat(hp_balance.hivePower), // Use the calculated HP balance
-                    hbd_balance: parseFloat((accountInfo.hbd_balance as Asset).toString().split(" ")[0]),
-                    hbd_savings_balance: parseFloat((accountInfo.savings_hbd_balance as Asset).toString().split(" ")[0]),
-                    has_voted_in_witness: accountInfo.witness_votes.includes('skatehive'),
-                    eth_address: extractEthAddress(accountInfo.json_metadata),
-                    max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
-                    last_updated: new Date().toISOString(),
-                    last_post: accountInfo.last_post,
-                    post_count: accountInfo.post_count,
-                };
-                await upsertAccountData([accountData]);
+                        const accountData = {
+                            hive_author: accountInfo.name,
+                            hive_balance: parseFloat((accountInfo.balance as Asset).toString().split(" ")[0]),
+                            hp_balance: parseFloat(hp_balance.hivePower), // Use the calculated HP balance
+                            hbd_balance: parseFloat((accountInfo.hbd_balance as Asset).toString().split(" ")[0]),
+                            hbd_savings_balance: parseFloat((accountInfo.savings_hbd_balance as Asset).toString().split(" ")[0]),
+                            has_voted_in_witness: accountInfo.witness_votes.includes('skatehive'),
+                            eth_address,
+                            gnars_balance: gnars_balance ? parseFloat(gnars_balance.toString()) : 0,
+                            gnars_votes: gnars_votes ? parseFloat(gnars_votes.toString()) : 0,
+                            skatehive_nft_balance: skatehive_nft_balance ? parseFloat(skatehive_nft_balance.toString()) : 0,
+                            max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
+                            last_updated: new Date().toISOString(),
+                            last_post: accountInfo.last_post,
+                            post_count: accountInfo.post_count,
+                        };
+                        await upsertAccountData([accountData]);
+                    } catch (ethError) {
+                        throw ethError;
+                    }
+                }
             }
         } catch (error) {
             logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');

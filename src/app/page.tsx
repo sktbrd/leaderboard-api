@@ -96,9 +96,15 @@ export default function HomePage() {
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 'green' : 'red' }}>
                 {row.eth_address ? formatEthAddress(row.eth_address) : 'N/A'}
               </td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.gnars_balance ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.gnars_votes ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.skatehive_nft_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.gnars_balance ?? 0) > 10 ? 'green' : (row.gnars_balance ?? 0) > 0 ? 'yellow' : 'red' }}>
+                {row.gnars_balance ?? 'N/A'}
+              </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.gnars_votes ?? 0) > 10 ? 'green' : (row.gnars_votes ?? 0) > 0 ? 'yellow' : 'red' }}>
+                {row.gnars_votes ?? 'N/A'}
+              </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.skatehive_nft_balance ?? 0) > 10 ? 'green' : (row.skatehive_nft_balance ?? 0) > 0 ? 'yellow' : 'red' }}>
+                {row.skatehive_nft_balance ?? 'N/A'}
+              </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.has_voted_in_witness ? 'green' : 'red' }}>
                 {row.has_voted_in_witness ? 'Yes' : 'No'}
               </td>

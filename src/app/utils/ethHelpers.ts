@@ -1,42 +1,41 @@
-import { Address } from "viem"
-import { tokenAbi } from "./tokenAbi"
-import { useReadContract } from "wagmi"
-import { logWithColor } from "./hiveHelpers"
+import { ethers } from "ethers";
+import { tokenAbi } from "./tokenAbi";
+import { logWithColor } from "./hiveHelpers";
+const provider = new ethers.JsonRpcProvider('https://base-mainnet.g.alchemy.com/v2/_OAOiBtV04wP6x1-gAqpwQoBj_ykKgv7');
 
-// Ensure this function is used in a Client Component
-export const useReadGnarsBalance = (address: Address) => {
-    console.log('useReadGnarsBalance')
-    const { data: balance } = useReadContract({
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        address: "0x880fb3cf5c6cc2d7dfc13a993e839a9411200c17",
-        args: [address],
-    })
-    logWithColor(`Balance of ${address}: ${balance}`, 'green')
-    return balance
+export const readGnarsBalance = async (address: string) => {
+    try {
+        console.log('readGnarsBalance');
+        const contract = new ethers.Contract("0x880fb3cf5c6cc2d7dfc13a993e839a9411200c17", tokenAbi, provider);
+        const balance = await contract.balanceOf(address);
+        logWithColor(`Balance of ${address}: ${balance}`, 'green');
+        return balance;
+    } catch (error) {
+        throw error;
+    }
 }
 
-export const useReadGnarsVotes = (address: Address) => {
-    console.log('useReadGnarsVotes')
-    const { data: votes } = useReadContract({
-        abi: tokenAbi,
-        functionName: 'getVotes',
-        address: "0x880fb3cf5c6cc2d7dfc13a993e839a9411200c17",
-        args: [address],
-    })
-    logWithColor(`Votes of ${address}: ${votes}`, 'green')
-    return votes
+export const readGnarsVotes = async (address: string) => {
+    try {
+        console.log('readGnarsVotes');
+        const contract = new ethers.Contract("0x880fb3cf5c6cc2d7dfc13a993e839a9411200c17", tokenAbi, provider);
+        const votes = await contract.getVotes(address);
+        logWithColor(`Votes of ${address}: ${votes}`, 'green');
+        return votes;
+    } catch (error) {
+        throw error;
+    }
 }
 
-export const useReadSkatehiveNFTBalance = (address: Address) => {
-    console.log('useReadSkatehiveNFTBalance')
-    const { data: balance } = useReadContract({
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        address: "0xfe10d3ce1b0f090935670368ec6de00d8d965523",
-        args: [address],
-    })
-    logWithColor(`Balance of ${address}: ${balance}`, 'green')
-    return balance
+export const readSkatehiveNFTBalance = async (address: string) => {
+    try {
+        console.log('readSkatehiveNFTBalance');
+        const contract = new ethers.Contract("0xfe10d3ce1b0f090935670368ec6de00d8d965523", tokenAbi, provider);
+        const balance = await contract.balanceOf(address);
+        logWithColor(`Balance of ${address}: ${balance}`, 'green');
+        return balance;
+    } catch (error) {
+        throw error;
+    }
 }
 
