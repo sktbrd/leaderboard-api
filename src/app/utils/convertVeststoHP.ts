@@ -1,5 +1,5 @@
 import { ExtendedAccount } from '@hiveio/dhive';
-import HiveClient from './hiveClient'; // Import HiveClient
+import HiveClient from './dataManager';
 
 export const convertVestingSharesToHivePower = async (
     vestingShares: string,
@@ -36,21 +36,12 @@ export const convertVestingSharesToHivePower = async (
         parseFloat(result.result.total_vesting_shares);
 
     return {
-        hivePower: vestHive.toFixed(3),
-        DelegatedToSomeoneHivePower: DelegatedToSomeoneHivePower.toFixed(3),
-        delegatedToUserInUSD: delegatedToUserInUSD.toFixed(3),
-        HPdelegatedToUser: HPdelegatedToUser.toFixed(3),
+        hivePower: vestHive.toFixed(4),
+        DelegatedToSomeoneHivePower: DelegatedToSomeoneHivePower.toFixed(4),
+        delegatedToUserInUSD: delegatedToUserInUSD.toFixed(4),
+        HPdelegatedToUser: HPdelegatedToUser.toFixed(4),
     };
 };
-
-export async function convertVestToHive(amount: number) {
-    const globalProperties = await HiveClient.call('condenser_api', 'get_dynamic_global_properties', []);
-    const totalVestingFund = parseFloat(globalProperties.total_vesting_fund_hive.split(" ")[0]);
-    const totalVestingShares = parseFloat(globalProperties.total_vesting_shares.split(" ")[0]);
-    const vestHive = (totalVestingFund * amount) / totalVestingShares;
-    console.log('Vest to Hive:', vestHive);
-    return vestHive;
-}
 
 export async function calculateUserVoteValue(user: ExtendedAccount) {
     const { voting_power = 0, vesting_shares = 0, received_vesting_shares = 0, delegated_vesting_shares = 0 } =

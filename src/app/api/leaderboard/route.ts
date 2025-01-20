@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { fetchAndStoreAllData } from '@/app/utils/hiveClient';
+import { fetchAndStoreAllData } from '@/app/utils/dataManager';
+import readline from 'readline';
 
 const colors: { [key: string]: string } = {
     red: '\x1b[31m',
@@ -15,6 +16,14 @@ const logWithColor = (message: string, color: string) => {
     console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
 };
 
+const updateLoadingBar = (current: number, total: number) => {
+    const barLength = 40;
+    const progress = Math.round((current / total) * barLength);
+    const bar = '█'.repeat(progress) + '-'.repeat(barLength - progress);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(`Progress: [${bar}] ${((current / total) * 100).toFixed(2)}%`);
+};
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -27,7 +36,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Community parameter is missing' }, { status: 400 });
         }
 
-        await fetchAndStoreAllData();
+        await fetchAndStoreAllData(updateLoadingBar);
 
         logWithColor('Data fetched and stored successfully.', 'green');
 

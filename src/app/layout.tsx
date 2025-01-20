@@ -1,31 +1,35 @@
+// file: src/app/layout.tsx (Server Component by default)
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { cookieToInitialState } from "wagmi";
+import { getServerConfig } from "./utils/wagmiConfig.server"; // <--- Import server safe config
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Provider } from "./utils/wagmiProvider";
 
 export const metadata: Metadata = {
   title: "Skatehive API",
   description: "API for Skatehive leaderboard",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  const config = getServerConfig();
+  const cookieHeader = (await headers()).get("cookie") || "";
+  const initialState = cookieToInitialState(config, cookieHeader);
+
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+      <body>
+        {/* 
+          Note: We'll now pass initialState to a Client Provider 
+          that you import from a *client* file.
+        */}
+        <Provider initialState={initialState}>
+          {children}
+        </Provider>
       </body>
     </html>
   );
