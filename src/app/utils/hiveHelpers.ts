@@ -48,7 +48,7 @@ export const extractEthAddress = (json_metadata: string): string => {
         const metadata = JSON.parse(sanitizedMetadata);
         return metadata.extensions?.eth_address || '0x0000000000000000000000000000000000000000' as Address;
     } catch (error) {
-        // logWithColor(`Error parsing json_metadata: ${error}`, 'red');
+        logWithColor(`Error parsing json_metadata: ${error}`, 'red');
         return '0x0000000000000000000000000000000000000000' as Address;
     }
 };

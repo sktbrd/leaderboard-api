@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { fetchAndStoreAllData } from '@/app/utils/dataManager';
-import readline from 'readline';
 
 const colors: { [key: string]: string } = {
     red: '\x1b[31m',
