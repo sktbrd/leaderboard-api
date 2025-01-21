@@ -9,6 +9,8 @@ import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './eth
 const HiveClient = new Client('https://api.deathwing.me');
 export default HiveClient;
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     try {
@@ -42,7 +44,7 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
             if (upsertError) {
                 logWithColor(`Error upserting account data for ${account.hive_author}: ${upsertError.message}`, 'red');
             } else {
-                // logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
+                logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
             }
         }
     } catch (error) {
@@ -64,28 +66,30 @@ export const getDatabaseData = async () => {
     }
 };
 
-export const fetchAndStoreAllData = async (progressCallback?: (current: number, total: number) => void): Promise<void> => {
+export const fetchAndStoreAllData = async (): Promise<void> => {
     const startTime = Date.now(); // Start time
     const community = 'hive-173115';
+    const batchSize = 25; // Reduce the batch size to process smaller batches
+
     try {
         logWithColor('Starting to fetch and store all data...', 'blue');
 
         // Fetch subscribers
         const subscribers = await fetchSubscribers(community);
-
-        // dummy subscribers for testing 
-        // const subscribers = [{ hive_author: 'xvlad' }];
         logWithColor(`Fetched ${subscribers.length} subscribers.`, 'blue');
-        // Upsert authors
-        await upsertAuthors(subscribers);
-        logWithColor('Upserted authors.', 'blue');
 
-        // Fetch and upsert account data for each subscriber
-        for (let i = 0; i < subscribers.length; i++) {
-            await fetchAndUpsertAccountData([subscribers[i]]);
-            if (progressCallback) {
-                progressCallback(i + 1, subscribers.length);
-            }
+        // Upsert authors in batches
+        const totalBatches = Math.ceil(subscribers.length / batchSize);
+        for (let i = 0; i < totalBatches; i++) {
+            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+
+            // Process the current batch concurrently
+            await Promise.all(batch.map(async (subscriber) => {
+                await fetchAndUpsertAccountData(subscriber);
+                await delay(200); // Increase delay to limit API calls to less than 50 per second
+            }));
+
+            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
         logWithColor('Finished fetching and storing all data.', 'green');
@@ -100,54 +104,60 @@ export const fetchAndStoreAllData = async (progressCallback?: (current: number, 
 };
 
 // Helper function to fetch and upsert account data for each subscriber
-export const fetchAndUpsertAccountData = async (subscribers: { hive_author: string }[]) => {
-    for (let i = 0; i < subscribers.length; i++) {
-        const { hive_author } = subscribers[i];
-        try {
-            const accountInfo = await fetchAccountInfo(hive_author);
-            if (accountInfo) {
-                const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
-                const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
-                const receivedVestingShares = parseFloat((accountInfo.received_vesting_shares as Asset).toString().split(" ")[0]);
+export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }) => {
+    const { hive_author } = subscriber;
 
-                const hp_balance = await convertVestingSharesToHivePower(vestingShares.toString(), delegatedVestingShares.toString(), receivedVestingShares.toString()); // Calculate HP
-
-                const voting_value = await calculateUserVoteValue(accountInfo); // Calculate voting value
-
-                if (extractEthAddress(accountInfo.json_metadata) === '0x0000000000000000000000000000000000000000') {
-                    continue; // Skip if the user has no Ethereum address
-                } else {
-                    const eth_address = extractEthAddress(accountInfo.json_metadata);
-                    try {
-                        // Fetch balances and votes on the server-side
-                        const gnars_balance = await readGnarsBalance(eth_address);
-                        const gnars_votes = await readGnarsVotes(eth_address);
-                        const skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
-
-                        const accountData = {
-                            hive_author: accountInfo.name,
-                            hive_balance: parseFloat((accountInfo.balance as Asset).toString().split(" ")[0]),
-                            hp_balance: parseFloat(hp_balance.hivePower), // Use the calculated HP balance
-                            hbd_balance: parseFloat((accountInfo.hbd_balance as Asset).toString().split(" ")[0]),
-                            hbd_savings_balance: parseFloat((accountInfo.savings_hbd_balance as Asset).toString().split(" ")[0]),
-                            has_voted_in_witness: accountInfo.witness_votes.includes('skatehive'),
-                            eth_address,
-                            gnars_balance: gnars_balance ? parseFloat(gnars_balance.toString()) : 0,
-                            gnars_votes: gnars_votes ? parseFloat(gnars_votes.toString()) : 0,
-                            skatehive_nft_balance: skatehive_nft_balance ? parseFloat(skatehive_nft_balance.toString()) : 0,
-                            max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
-                            last_updated: new Date().toISOString(),
-                            last_post: accountInfo.last_post,
-                            post_count: accountInfo.post_count,
-                        };
-                        await upsertAccountData([accountData]);
-                    } catch (ethError) {
-                        throw ethError;
-                    }
-                }
-            }
-        } catch (error) {
-            logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
+    try {
+        const accountInfo = await fetchAccountInfo(hive_author);
+        if (!accountInfo) {
+            logWithColor(`No account info found for ${hive_author}.`, 'red');
+            return;
         }
+
+        const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
+        const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
+        const receivedVestingShares = parseFloat((accountInfo.received_vesting_shares as Asset).toString().split(" ")[0]);
+
+        const hp_balance = await convertVestingSharesToHivePower(
+            vestingShares.toString(),
+            delegatedVestingShares.toString(),
+            receivedVestingShares.toString()
+        );
+
+        const voting_value = await calculateUserVoteValue(accountInfo);
+        let gnars_balance = 0;
+        let gnars_votes = 0;
+        let skatehive_nft_balance = 0;
+        const eth_address = extractEthAddress(accountInfo.json_metadata);
+        if (eth_address === '0x0000000000000000000000000000000000000000') {
+            logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
+        }
+        else {
+            gnars_balance = await readGnarsBalance(eth_address);
+            gnars_votes = await readGnarsVotes(eth_address);
+            skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
+        }
+
+        const accountData = {
+            hive_author: accountInfo.name,
+            hive_balance: parseFloat((accountInfo.balance as Asset).toString().split(" ")[0]),
+            hp_balance: parseFloat(hp_balance.hivePower), // Use the calculated HP balance
+            hbd_balance: parseFloat((accountInfo.hbd_balance as Asset).toString().split(" ")[0]),
+            hbd_savings_balance: parseFloat((accountInfo.savings_hbd_balance as Asset).toString().split(" ")[0]),
+            has_voted_in_witness: accountInfo.witness_votes.includes('skatehive'),
+            eth_address,
+            gnars_balance: gnars_balance ? parseFloat(gnars_balance.toString()) : 0,
+            gnars_votes: gnars_votes ? parseFloat(gnars_votes.toString()) : 0,
+            skatehive_nft_balance: skatehive_nft_balance ? parseFloat(skatehive_nft_balance.toString()) : 0,
+            max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
+            last_updated: new Date().toISOString(),
+            last_post: accountInfo.last_post,
+            post_count: accountInfo.post_count,
+        };
+
+        await upsertAccountData([accountData]);
+        logWithColor(`Successfully upserted data for ${hive_author}.`, 'green');
+    } catch (error) {
+        logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
     }
 };

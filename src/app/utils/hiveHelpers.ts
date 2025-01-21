@@ -23,11 +23,11 @@ export const fetchAccountInfo = async (username: string): Promise<ExtendedAccoun
         if (accounts && accounts.length > 0) {
             return accounts[0];
         } else {
-            logWithColor(`No account information found for ${username}`, 'red');
+            // logWithColor(`No account information found for ${username}`, 'red');
             return null;
         }
     } catch (error) {
-        logWithColor(`Error fetching account information for ${username}: ${error}`, 'red');
+        // logWithColor(`Error fetching account information for ${username}: ${error}`, 'red');
         throw error; // Re-throw the error to ensure it is logged
     }
 };
@@ -48,7 +48,7 @@ export const extractEthAddress = (json_metadata: string): string => {
         const metadata = JSON.parse(sanitizedMetadata);
         return metadata.extensions?.eth_address || '0x0000000000000000000000000000000000000000' as Address;
     } catch (error) {
-        logWithColor(`Error parsing json_metadata: ${error}`, 'red');
+        // logWithColor(`Error parsing json_metadata: ${error}`, 'red');
         return '0x0000000000000000000000000000000000000000' as Address;
     }
 };

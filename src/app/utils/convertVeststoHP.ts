@@ -1,5 +1,6 @@
 import { ExtendedAccount } from '@hiveio/dhive';
 import HiveClient from './dataManager';
+import { logWithColor } from './hiveHelpers';
 
 export const convertVestingSharesToHivePower = async (
     vestingShares: string,
@@ -22,6 +23,12 @@ export const convertVestingSharesToHivePower = async (
         headers: { 'Content-Type': 'application/json' },
     });
     const result = await response.json();
+
+    if (!result.result || !result.result.total_vesting_fund_hive || !result.result.total_vesting_shares) {
+        logWithColor(`Invalid response from Hive API: ${JSON.stringify(result)}`, 'red');
+        throw new Error('Invalid response from Hive API');
+    }
+
     const vestHive =
         (parseFloat(result.result.total_vesting_fund_hive) * availableVESTS) /
         parseFloat(result.result.total_vesting_shares);
