@@ -86,7 +86,7 @@ export default function HomePage() {
           {sortedLeaderboard.map((row, index) => (
             <tr key={index} style={{ borderBottom: '1px solid #ddd' }}>
               <td style={{ border: '1px solid #ddd', padding: '6px' }}>
-                <a href={`https://hivehuv.dev/@${row.hive_author}`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://hivehub.dev/@${row.hive_author}`} target="_blank" rel="noopener noreferrer">
                   {row.hive_author}
                 </a>
               </td>
