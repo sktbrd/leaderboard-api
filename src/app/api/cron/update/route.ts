@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { fetchAndStoreAllData } from '@/app/utils/dataManager';
+import { fetchAndStorePartialData } from '@/app/utils/dataManager';
 
 export async function GET() {
     try {
         // Call your data fetch and store function
-        await fetchAndStoreAllData();
+        await fetchAndStorePartialData();
 
         // Respond with a success message
         return NextResponse.json({ message: 'Cron job executed successfully.' });

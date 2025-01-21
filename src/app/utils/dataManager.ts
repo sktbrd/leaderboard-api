@@ -1,15 +1,13 @@
 import { Asset, Client } from '@hiveio/dhive';
 import { supabase } from './supabaseClient'; // Use the existing Supabase client
-import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveHelpers';
+import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveUtils';
 import { DataBaseAuthor } from './types';
 import { convertVestingSharesToHivePower, calculateUserVoteValue } from './convertVeststoHP';
 import { fetchSubscribers } from './fetchSubscribers';
-import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethHelpers';
+import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereumUtils';
 
 const HiveClient = new Client('https://api.deathwing.me');
 export default HiveClient;
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
@@ -66,40 +64,84 @@ export const getDatabaseData = async () => {
     }
 };
 
-export const fetchAndStoreAllData = async (): Promise<void> => {
-    const startTime = Date.now(); // Start time
+export const fetchAndStorePartialData = async (): Promise<void> => {
+    const batchSize = 25;
     const community = 'hive-173115';
-    const batchSize = 25; // Reduce the batch size to process smaller batches
 
     try {
-        logWithColor('Starting to fetch and store all data...', 'blue');
-
-        // Fetch subscribers
         const subscribers = await fetchSubscribers(community);
-        logWithColor(`Fetched ${subscribers.length} subscribers.`, 'blue');
+        const databaseData = await getDatabaseData();
 
-        // Upsert authors in batches
-        const totalBatches = Math.ceil(subscribers.length / batchSize);
+        // Find the 100 oldest subscribers by `last_updated`
+        const lastUpdatedData = databaseData
+            .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
+            .slice(0, 100);
+
+        const validSubscribers = subscribers.filter(subscriber =>
+            lastUpdatedData.some(data => data.hive_author === subscriber.hive_author)
+        );
+
+        const totalBatches = Math.ceil(validSubscribers.length / batchSize);
+
         for (let i = 0; i < totalBatches; i++) {
-            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+            const batch = validSubscribers.slice(i * batchSize, (i + 1) * batchSize);
 
-            // Process the current batch concurrently
-            await Promise.all(batch.map(async (subscriber) => {
-                await fetchAndUpsertAccountData(subscriber);
-                await delay(200); // Increase delay to limit API calls to less than 50 per second
-            }));
+            await Promise.all(
+                batch.map(async (subscriber) => {
+                    try {
+                        await fetchAndUpsertAccountData(subscriber);
+                    } catch (error) {
+                        logWithColor(`Failed to process ${subscriber.hive_author}: ${error}`, 'red');
+                    }
+                })
+            );
 
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
-        logWithColor('Finished fetching and storing all data.', 'green');
+        logWithColor('All data fetched and stored successfully.', 'green');
+    } catch (error) {
+        logWithColor(`Error during data processing: ${error}`, 'red');
+    }
+};
+
+export const fetchAndStoreAllData = async (): Promise<void> => {
+    const batchSize = 25; // Number of accounts processed in parallel
+    const community = 'hive-173115';
+
+    try {
+        logWithColor('Starting to fetch and store all data...', 'blue');
+
+        const subscribers = await fetchSubscribers(community);
+
+        logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
+
+        // Step 4: Upsert authors into the database
+        await upsertAuthors(subscribers);
+
+        // Step 5: Process each batch of subscribers
+        const totalBatches = Math.ceil(subscribers.length / batchSize);
+
+        for (let i = 0; i < totalBatches; i++) {
+            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+
+            await Promise.all(
+                batch.map(async (subscriber) => {
+                    try {
+                        await fetchAndUpsertAccountData(subscriber);
+                    } catch (error) {
+                        logWithColor(`Failed to process subscriber ${subscriber.hive_author}: ${error}`, 'red');
+                    }
+                })
+            );
+
+            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
+        }
+
+        logWithColor('All data fetched and stored successfully.', 'green');
     } catch (error) {
         logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
-        throw error; // Re-throw the error to ensure it is logged
-    } finally {
-        const endTime = Date.now(); // End time
-        const elapsedTime = (endTime - startTime) / 1000; // Calculate elapsed time in seconds
-        logWithColor(`Elapsed time: ${elapsedTime} seconds`, 'purple');
+        throw error;
     }
 };
 

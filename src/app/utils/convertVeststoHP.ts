@@ -1,6 +1,8 @@
-import { ExtendedAccount } from '@hiveio/dhive';
+import { ExtendedAccount, Asset, DynamicGlobalProperties } from '@hiveio/dhive';
 import HiveClient from './dataManager';
-import { logWithColor } from './hiveHelpers';
+import { logWithColor } from './hiveUtils';
+
+const parseAsset = (asset: Asset | string): number => parseFloat(asset.toString().split(" ")[0]);
 
 export const convertVestingSharesToHivePower = async (
     vestingShares: string,
@@ -22,25 +24,24 @@ export const convertVestingSharesToHivePower = async (
         }),
         headers: { 'Content-Type': 'application/json' },
     });
-    const result = await response.json();
-
+    const result: { result: DynamicGlobalProperties } = await response.json();
     if (!result.result || !result.result.total_vesting_fund_hive || !result.result.total_vesting_shares) {
         logWithColor(`Invalid response from Hive API: ${JSON.stringify(result)}`, 'red');
         throw new Error('Invalid response from Hive API');
     }
 
     const vestHive =
-        (parseFloat(result.result.total_vesting_fund_hive) * availableVESTS) /
-        parseFloat(result.result.total_vesting_shares);
+        (parseAsset(result.result.total_vesting_fund_hive) * availableVESTS) /
+        parseAsset(result.result.total_vesting_shares);
 
     const DelegatedToSomeoneHivePower =
-        (parseFloat(result.result.total_vesting_fund_hive) * delegatedVestingSharesFloat) /
-        parseFloat(result.result.total_vesting_shares);
+        (parseAsset(result.result.total_vesting_fund_hive) * delegatedVestingSharesFloat) /
+        parseAsset(result.result.total_vesting_shares);
 
-    const delegatedToUserInUSD = (parseFloat(result.result.total_vesting_fund_hive) * receivedVestingSharesFloat) /
-        parseFloat(result.result.total_vesting_shares);
-    const HPdelegatedToUser = (parseFloat(result.result.total_vesting_fund_hive) * receivedVestingSharesFloat) /
-        parseFloat(result.result.total_vesting_shares);
+    const delegatedToUserInUSD = (parseAsset(result.result.total_vesting_fund_hive) * receivedVestingSharesFloat) /
+        parseAsset(result.result.total_vesting_shares);
+    const HPdelegatedToUser = (parseAsset(result.result.total_vesting_fund_hive) * receivedVestingSharesFloat) /
+        parseAsset(result.result.total_vesting_shares);
 
     return {
         hivePower: vestHive.toFixed(4),
@@ -51,7 +52,7 @@ export const convertVestingSharesToHivePower = async (
 };
 
 export async function calculateUserVoteValue(user: ExtendedAccount) {
-    const { voting_power = 0, vesting_shares = 0, received_vesting_shares = 0, delegated_vesting_shares = 0 } =
+    const { voting_power = 0, vesting_shares = "0.000000 VESTS", received_vesting_shares = "0.000000 VESTS", delegated_vesting_shares = "0.000000 VESTS" } =
         user || {};
 
     const client = HiveClient;
@@ -61,17 +62,17 @@ export async function calculateUserVoteValue(user: ExtendedAccount) {
     const { reward_balance, recent_claims } = reward_fund;
     const { base, quote } = feed_history.current_median_history;
 
-    const baseNumeric = parseFloat(base.split(' ')[0]);
-    const quoteNumeric = parseFloat(quote.split(' ')[0]);
+    const baseNumeric = parseAsset(base);
+    const quoteNumeric = parseAsset(quote);
 
     const hbdMedianPrice = baseNumeric / quoteNumeric;
 
-    const rewardBalanceNumeric = parseFloat(reward_balance.split(' ')[0]);
+    const rewardBalanceNumeric = parseAsset(reward_balance);
     const recentClaimsNumeric = parseFloat(recent_claims);
 
-    const vestingSharesNumeric = parseFloat(String(vesting_shares).split(' ')[0]);
-    const receivedVestingSharesNumeric = parseFloat(String(received_vesting_shares).split(' ')[0]);
-    const delegatedVestingSharesNumeric = parseFloat(String(delegated_vesting_shares).split(' ')[0]);
+    const vestingSharesNumeric = parseAsset(vesting_shares);
+    const receivedVestingSharesNumeric = parseAsset(received_vesting_shares);
+    const delegatedVestingSharesNumeric = parseAsset(delegated_vesting_shares);
 
     const total_vests = vestingSharesNumeric + receivedVestingSharesNumeric - delegatedVestingSharesNumeric;
     const final_vest = total_vests * 1e6;

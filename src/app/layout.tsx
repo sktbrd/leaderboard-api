@@ -1,10 +1,6 @@
 // file: src/app/layout.tsx (Server Component by default)
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { cookieToInitialState } from "wagmi";
-import { getServerConfig } from "./utils/wagmiConfig.server"; // <--- Import server safe config
 import "./globals.css";
-import { Provider } from "./utils/wagmiProvider";
 
 export const metadata: Metadata = {
   title: "Skatehive API",
@@ -16,16 +12,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const config = getServerConfig();
-  const cookieHeader = (await headers()).get("cookie") || "";
-  const initialState = cookieToInitialState(config, cookieHeader);
 
   return (
     <html lang="en">
       <body>
-        <Provider initialState={initialState}>
-          {children}
-        </Provider>
+        {children}
       </body>
     </html>
   );

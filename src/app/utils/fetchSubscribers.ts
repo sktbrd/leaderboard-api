@@ -1,4 +1,4 @@
-import { logWithColor } from './hiveHelpers';
+import { logWithColor } from './hiveUtils';
 
 interface FetchSubscribersResponse {
     result: [string][];
