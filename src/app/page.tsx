@@ -85,7 +85,11 @@ export default function HomePage() {
         <tbody>
           {sortedLeaderboard.map((row, index) => (
             <tr key={index} style={{ borderBottom: '1px solid #ddd' }}>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.hive_author}</td>
+              <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                <a href={`https://hivehuv.dev/@${row.hive_author}`} target="_blank" rel="noopener noreferrer">
+                  {row.hive_author}
+                </a>
+              </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.max_voting_power_usd !== null ? (row.max_voting_power_usd < 0.05 ? 'red' : row.max_voting_power_usd > 0.5 ? 'green' : 'yellow') : 'black' }}>
                 {row.max_voting_power_usd ?? 'N/A'}
               </td>
