@@ -24,6 +24,7 @@ export default function HomePage() {
   const [sortField, setSortField] = useState<keyof LeaderboardRow>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,8 +42,13 @@ export default function HomePage() {
     return `${ethAddress.slice(0, 6)}...${ethAddress.slice(-4)}`;
   }
 
+  // Filter the leaderboard based on the search term
+  const filteredLeaderboard = leaderboard.filter(row =>
+    row.hive_author.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Sort the leaderboard based on selected field and order
-  const sortedLeaderboard = [...leaderboard].sort((a, b) => {
+  const sortedLeaderboard = [...filteredLeaderboard].sort((a, b) => {
     const aValue = a[sortField] ?? 0;
     const bValue = b[sortField] ?? 0;
     return sortOrder === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number);
@@ -62,7 +68,16 @@ export default function HomePage() {
       <center>
         <h1>Skatehive Leaderboard</h1>
       </center>
-      <p>We are {sortedLeaderboard.length} skaters supporting ourselves</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p>We are {sortedLeaderboard.length} skaters supporting ourselves</p>
+        <input
+          type="text"
+          placeholder="Search by Hive Author"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+        />
+      </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
         <thead>
           <tr>
@@ -78,7 +93,7 @@ export default function HomePage() {
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('gnars_votes')}>Gnars Votes</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('skatehive_nft_balance')}>Skatehive NFT Bal</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('has_voted_in_witness')}>HasVotedWit</th>
-            <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('eth_total_balance')}>ETH Bal</th>
+            {/* <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('eth_total_balance')}>ETH Bal</th> */}
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_updated')}>Last Updated</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_post')}>Last Post</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('post_count')}>Post Count</th>
@@ -126,7 +141,7 @@ export default function HomePage() {
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.has_voted_in_witness ? 'green' : 'red' }}>
                 {row.has_voted_in_witness ? 'Yes' : 'No'}
               </td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.eth_total_balance ?? 'N/A'}</td>
+              {/* <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.eth_total_balance ?? 'N/A'}</td> */}
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.last_updated && new Date(row.last_updated) < new Date(new Date().setDate(new Date().getDate() - 1)) ? 'red' : 'green' }}>
                 {row.last_updated ? new Date(row.last_updated).toLocaleString() : 'N/A'}
               </td>
@@ -142,45 +157,45 @@ export default function HomePage() {
                   `Hive Balance Points: ${Math.min(row.hive_balance ?? 0, 1000)} * 0.1 = ${(Math.min(row.hive_balance ?? 0, 1000) * 0.1).toFixed(2)}\n` +
                   `HP Points: ${Math.min(row.hp_balance ?? 0, 12000)} * 0.5 = ${(Math.min(row.hp_balance ?? 0, 12000) * 0.5).toFixed(2)}\n` +
                   `Gnars Points: ${row.gnars_balance ?? 0} * 30 = ${(row.gnars_balance ?? 0) * 30}\n` +
-                  `Skatehive NFT Points: ${row.skatehive_nft_balance ?? 0} * 100 = ${(row.skatehive_nft_balance ?? 0) * 100}\n` +
+                  `Skatehive NFT Points: ${row.skatehive_nft_balance ?? 0} * 50 = ${(row.skatehive_nft_balance ?? 0) * 50}\n` +
                   `Witness Vote Points: ${row.has_voted_in_witness ? 1000 : 0}\n` +
                   `HBD Savings Points: ${Math.min(row.hbd_savings_balance ?? 0, 1000)} * 0.2 = ${(Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2).toFixed(2)}\n` +
                   `Post Count Points: ${Math.min(row.post_count ?? 0, 3000)} * 0.1 = ${(Math.min(row.post_count ?? 0, 3000) * 0.1)}\n` +
-                  `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 0.1 = ${(row.max_voting_power_usd ?? 0 * 0.1).toFixed(2)}\n` +
+                  `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 1000 = ${(row.max_voting_power_usd ?? 0 * 1000).toFixed(2)}\n` +
                   `Inactivity Penalty: -${row.last_post ? Math.min(
                     Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)),
                     100
                   ) : 100}\n` +
                   `ETH Wallet Bonus: ${row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0}\n` +
-                  `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0}\n` +
-                  `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -10 : 0}\n` +
-                  `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -50 : 0}\n` +
+                  `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -1000 : 0}\n` +
+                  `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -1000 : 0}\n` +
+                  `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -5000 : 0}\n` +
                   `Zero Gnars Balance Penalty: ${row.gnars_balance === 0 ? -300 : 0}\n` +
                   `Zero Skatehive NFT Balance Penalty: ${row.skatehive_nft_balance === 0 ? -1000 : 0}\n` +
-                  `Zero HBD Savings Balance Penalty: ${row.hbd_savings_balance === 0 ? -20 : 0}\n` +
-                  `Zero Post Count Penalty: ${row.post_count === 0 ? -200 : 0}\n` +
+                  `Zero HBD Savings Balance Penalty: ${row.hbd_savings_balance === 0 ? -200 : 0}\n` +
+                  `Zero Post Count Penalty: ${row.post_count === 0 ? -2000 : 0}\n` +
                   `----------------------------------------\n` +
                   `Total Points: ${(
                     (Math.min(row.hive_balance ?? 0, 1000) * 0.1) +
                     (Math.min(row.hp_balance ?? 0, 12000) * 0.5) +
                     ((row.gnars_balance ?? 0) * 30) +
-                    ((row.skatehive_nft_balance ?? 0) * 100) +
+                    ((row.skatehive_nft_balance ?? 0) * 50) +
                     (row.has_voted_in_witness ? 1000 : 0) +
                     (Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2) +
                     (Math.min(row.post_count ?? 0, 3000) * 0.1) +
-                    ((row.max_voting_power_usd ?? 0) * 0.1) +
+                    ((row.max_voting_power_usd ?? 0) * 1000) +
                     (row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0) +
-                    (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0) -
+                    (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -1000 : 0) -
                     Math.min(
                       row.last_post ? Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)) : 100,
                       100
                     ) +
-                    (row.hive_balance === 0 ? -10 : 0) +
-                    (row.hp_balance === 0 ? -50 : 0) +
+                    (row.hive_balance === 0 ? -1000 : 0) +
+                    (row.hp_balance === 0 ? -5000 : 0) +
                     (row.gnars_balance === 0 ? -300 : 0) +
                     (row.skatehive_nft_balance === 0 ? -1000 : 0) +
-                    (row.hbd_savings_balance === 0 ? -20 : 0) +
-                    (row.post_count === 0 ? -200 : 0)
+                    (row.hbd_savings_balance === 0 ? -200 : 0) +
+                    (row.post_count === 0 ? -2000 : 0)
                   ).toFixed(2)}`
                 }
               >

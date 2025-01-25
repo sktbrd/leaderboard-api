@@ -158,7 +158,7 @@ We’ve developed a point system to rank users based on their support and contri
    - 30 points per Gnars NFT.
 
 4. **Skatehive NFTs**
-   - 100 points per Skatehive NFT.
+   - 50 points per Skatehive NFT.
 
 5. **Witness Vote**
    - 1000 points for voting for the Skatehive witness.
@@ -172,7 +172,7 @@ We’ve developed a point system to rank users based on their support and contri
    - Points capped at 3,000 posts (maximum 300 points).
 
 8. **Voting Power**
-   - 0.1 points per USD of voting power.
+   - 1000 points per USD of voting power.
 
 9. **Last Post Activity**
    - 0 points deducted if the last post was within 7 days.
