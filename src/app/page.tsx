@@ -156,7 +156,7 @@ export default function HomePage() {
                 title={
                   `Hive Balance Points: ${Math.min(row.hive_balance ?? 0, 1000)} * 0.1 = ${(Math.min(row.hive_balance ?? 0, 1000) * 0.1).toFixed(2)}\n` +
                   `HP Points: ${Math.min(row.hp_balance ?? 0, 12000)} * 0.5 = ${(Math.min(row.hp_balance ?? 0, 12000) * 0.5).toFixed(2)}\n` +
-                  `Gnars Points: ${row.gnars_balance ?? 0} * 30 = ${(row.gnars_balance ?? 0) * 30}\n` +
+                  `Gnars Votes Points: ${row.gnars_votes ?? 0} * 30 = ${(row.gnars_votes ?? 0) * 30}\n` +
                   `Skatehive NFT Points: ${row.skatehive_nft_balance ?? 0} * 50 = ${(row.skatehive_nft_balance ?? 0) * 50}\n` +
                   `Witness Vote Points: ${row.has_voted_in_witness ? 1000 : 0}\n` +
                   `HBD Savings Points: ${Math.min(row.hbd_savings_balance ?? 0, 1000)} * 0.2 = ${(Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2).toFixed(2)}\n` +
@@ -170,7 +170,7 @@ export default function HomePage() {
                   `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0}\n` +
                   `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -1000 : 0}\n` +
                   `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -5000 : 0}\n` +
-                  `Zero Gnars Balance Penalty: ${row.gnars_balance === 0 ? -300 : 0}\n` +
+                  `Zero Gnars Votes Penalty: ${row.gnars_votes === 0 ? -300 : 0}\n` +
                   `Zero Skatehive NFT Balance Penalty: ${row.skatehive_nft_balance === 0 ? -900 : 0}\n` +
                   `Zero HBD Savings Balance Penalty: ${row.hbd_savings_balance === 0 ? -200 : 0}\n` +
                   `Zero Post Count Penalty: ${row.post_count === 0 ? -2000 : 0}\n` +
@@ -178,7 +178,7 @@ export default function HomePage() {
                   `Total Points: ${(
                     (Math.min(row.hive_balance ?? 0, 1000) * 0.1) +
                     (Math.min(row.hp_balance ?? 0, 12000) * 0.5) +
-                    ((row.gnars_balance ?? 0) * 30) +
+                    ((row.gnars_votes ?? 0) * 30) +
                     ((row.skatehive_nft_balance ?? 0) * 50) +
                     (row.has_voted_in_witness ? 1000 : 0) +
                     (Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2) +
@@ -192,7 +192,7 @@ export default function HomePage() {
                     ) +
                     (row.hive_balance === 0 ? -1000 : 0) +
                     (row.hp_balance === 0 ? -5000 : 0) +
-                    (row.gnars_balance === 0 ? -300 : 0) +
+                    (row.gnars_votes === 0 ? -300 : 0) +
                     (row.skatehive_nft_balance === 0 ? -900 : 0) +
                     (row.hbd_savings_balance === 0 ? -200 : 0) +
                     (row.post_count === 0 ? -2000 : 0)

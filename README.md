@@ -154,8 +154,8 @@ We’ve developed a point system to rank users based on their support and contri
    - 0.5 points per HP.
    - Points capped at 12,000 HP (maximum 6,000 points).
 
-3. **Gnars NFTs**
-   - 30 points per Gnars NFT.
+3. **Gnars Votes**
+   - 30 points per Gnars Vote.
 
 4. **Skatehive NFTs**
    - 50 points per Skatehive NFT.
@@ -187,7 +187,7 @@ We’ve developed a point system to rank users based on their support and contri
 Total Points =
 (Capped Hive Points) +
 (Capped HP Points) +
-(Gnars NFT Points) +
+(Gnars Votes Points) +
 (Skatehive NFT Points) +
 (Witness Vote Points) +
 (Capped HBD Savings Points) +
