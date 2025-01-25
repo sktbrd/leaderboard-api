@@ -152,7 +152,7 @@ We’ve developed a point system to rank users based on their support and contri
 
 2. **Hive Power (HP)**
    - 0.5 points per HP.
-   - Points capped at 15,000 HP (maximum 7,500 points).
+   - Points capped at 12,000 HP (maximum 6,000 points).
 
 3. **Gnars NFTs**
    - 30 points per Gnars NFT.
@@ -168,8 +168,8 @@ We’ve developed a point system to rank users based on their support and contri
    - Points capped at 1,000 HBD (maximum 200 points).
 
 7. **Number of Posts**
-   - 2 points per post.
-   - Points capped at 3,000 posts (maximum 6,000 points).
+   - 0.1 points per post.
+   - Points capped at 3,000 posts (maximum 300 points).
 
 8. **Voting Power**
    - 0.1 points per USD of voting power.

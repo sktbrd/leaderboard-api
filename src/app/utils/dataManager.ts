@@ -226,28 +226,28 @@ export const calculateAndUpsertPoints = async () => {
             hp_balance: 0.5,
             gnars_balance: 30,
             skatehive_nft_balance: 100,
-            witness_vote: 1000, // Increased weight for witness votes
+            witness_vote: 1000,
             hbd_savings_balance: 0.2,
-            post_count: 2,
-            max_voting_power_usd: 0.1, // Points for voting power
+            post_count: 0.1,
+            max_voting_power_usd: 0.1,
             max_inactivity_penalty: 100,
-            eth_wallet_penalty: -2000, // Penalty for missing valid Ethereum wallet
+            eth_wallet_penalty: -2000,
             zero_value_penalties: {
                 hive_balance: -10,
                 hp_balance: -50,
                 gnars_balance: -300,
                 skatehive_nft_balance: -1000,
                 hbd_savings_balance: -20,
-                post_count: -200, // More severe penalty for zero post_count
+                post_count: -200,
             },
         };
 
         const CAPS = {
             hive_balance: 1000,
-            hp_balance: 15000, // Increased cap for HP
+            hp_balance: 12000,
             hbd_balance: 1000,
             hbd_savings_balance: 1000,
-            post_count: 3000, // Increased cap for post count
+            post_count: 3000,
         };
 
         // Helper function to apply cap
@@ -303,11 +303,11 @@ export const calculateAndUpsertPoints = async () => {
                 (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : 0) +
                 (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
                 (cappedPostCount * POINT_MULTIPLIERS.post_count) +
-                (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) + // Add points for voting power
+                (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) +
                 ethWalletBonus +
-                ethWalletPenalty - // Add penalty for missing wallet
+                ethWalletPenalty -
                 Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
-                zeroValuePenalties; // Add penalties for zero values
+                zeroValuePenalties;
 
             return {
                 ...user,

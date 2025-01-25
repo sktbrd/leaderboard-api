@@ -62,7 +62,7 @@ export default function HomePage() {
       <center>
         <h1>Skatehive Leaderboard</h1>
       </center>
-      <p>Total number of rows: {sortedLeaderboard.length}</p>
+      <p>We are {sortedLeaderboard.length} skaters supporting ourselves</p>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
         <thead>
           <tr>
@@ -140,12 +140,12 @@ export default function HomePage() {
                 style={{ border: '1px solid #ddd', padding: '6px' }}
                 title={
                   `Hive Balance Points: ${Math.min(row.hive_balance ?? 0, 1000)} * 0.1 = ${(Math.min(row.hive_balance ?? 0, 1000) * 0.1).toFixed(2)}\n` +
-                  `HP Points: ${Math.min(row.hp_balance ?? 0, 15000)} * 0.5 = ${(Math.min(row.hp_balance ?? 0, 15000) * 0.5).toFixed(2)}\n` +
+                  `HP Points: ${Math.min(row.hp_balance ?? 0, 12000)} * 0.5 = ${(Math.min(row.hp_balance ?? 0, 12000) * 0.5).toFixed(2)}\n` +
                   `Gnars Points: ${row.gnars_balance ?? 0} * 30 = ${(row.gnars_balance ?? 0) * 30}\n` +
                   `Skatehive NFT Points: ${row.skatehive_nft_balance ?? 0} * 100 = ${(row.skatehive_nft_balance ?? 0) * 100}\n` +
                   `Witness Vote Points: ${row.has_voted_in_witness ? 1000 : 0}\n` +
                   `HBD Savings Points: ${Math.min(row.hbd_savings_balance ?? 0, 1000)} * 0.2 = ${(Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2).toFixed(2)}\n` +
-                  `Post Count Points: ${Math.min(row.post_count ?? 0, 3000)} * 2 = ${(Math.min(row.post_count ?? 0, 3000) * 2)}\n` +
+                  `Post Count Points: ${Math.min(row.post_count ?? 0, 3000)} * 0.1 = ${(Math.min(row.post_count ?? 0, 3000) * 0.1)}\n` +
                   `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 0.1 = ${(row.max_voting_power_usd ?? 0 * 0.1).toFixed(2)}\n` +
                   `Inactivity Penalty: -${row.last_post ? Math.min(
                     Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)),
@@ -162,13 +162,13 @@ export default function HomePage() {
                   `----------------------------------------\n` +
                   `Total Points: ${(
                     (Math.min(row.hive_balance ?? 0, 1000) * 0.1) +
-                    (Math.min(row.hp_balance ?? 0, 15000) * 0.5) +
+                    (Math.min(row.hp_balance ?? 0, 12000) * 0.5) +
                     ((row.gnars_balance ?? 0) * 30) +
                     ((row.skatehive_nft_balance ?? 0) * 100) +
                     (row.has_voted_in_witness ? 1000 : 0) +
                     (Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2) +
-                    (Math.min(row.post_count ?? 0, 3000) * 2) +
-                    ((row.max_voting_power_usd ?? 0) * 0.1) + // Add points for voting power
+                    (Math.min(row.post_count ?? 0, 3000) * 0.1) +
+                    ((row.max_voting_power_usd ?? 0) * 0.1) +
                     (row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0) +
                     (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0) -
                     Math.min(
