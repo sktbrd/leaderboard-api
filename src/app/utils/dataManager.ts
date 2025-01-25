@@ -261,7 +261,7 @@ export const calculateAndUpsertPoints = async () => {
                 gnars_votes = 0, // Changed from gnars_balance to gnars_votes
                 skatehive_nft_balance = 0,
                 has_voted_in_witness = false,
-                hbd_balance = 0,
+                // hbd_balance = 0,
                 hbd_savings_balance = 0,
                 post_count = 0,
                 max_voting_power_usd = 0, // Added max_voting_power_usd
