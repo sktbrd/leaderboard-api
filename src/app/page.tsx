@@ -167,11 +167,11 @@ export default function HomePage() {
                     100
                   ) : 100}\n` +
                   `ETH Wallet Bonus: ${row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0}\n` +
-                  `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -1000 : 0}\n` +
+                  `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0}\n` +
                   `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -1000 : 0}\n` +
                   `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -5000 : 0}\n` +
                   `Zero Gnars Balance Penalty: ${row.gnars_balance === 0 ? -300 : 0}\n` +
-                  `Zero Skatehive NFT Balance Penalty: ${row.skatehive_nft_balance === 0 ? -1000 : 0}\n` +
+                  `Zero Skatehive NFT Balance Penalty: ${row.skatehive_nft_balance === 0 ? -900 : 0}\n` +
                   `Zero HBD Savings Balance Penalty: ${row.hbd_savings_balance === 0 ? -200 : 0}\n` +
                   `Zero Post Count Penalty: ${row.post_count === 0 ? -2000 : 0}\n` +
                   `----------------------------------------\n` +
@@ -185,7 +185,7 @@ export default function HomePage() {
                     (Math.min(row.post_count ?? 0, 3000) * 0.1) +
                     ((row.max_voting_power_usd ?? 0) * 1000) +
                     (row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0) +
-                    (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -1000 : 0) -
+                    (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0) -
                     Math.min(
                       row.last_post ? Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)) : 100,
                       100
@@ -193,7 +193,7 @@ export default function HomePage() {
                     (row.hive_balance === 0 ? -1000 : 0) +
                     (row.hp_balance === 0 ? -5000 : 0) +
                     (row.gnars_balance === 0 ? -300 : 0) +
-                    (row.skatehive_nft_balance === 0 ? -1000 : 0) +
+                    (row.skatehive_nft_balance === 0 ? -900 : 0) +
                     (row.hbd_savings_balance === 0 ? -200 : 0) +
                     (row.post_count === 0 ? -2000 : 0)
                   ).toFixed(2)}`
