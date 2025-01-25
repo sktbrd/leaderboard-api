@@ -114,7 +114,8 @@ CREATE TABLE leaderboard (
   max_voting_power_usd FLOAT,
   last_updated TIMESTAMP,
   last_post TIMESTAMP,
-  post_count INT
+  post_count INT,
+  points FLOAT
 );
 ```
 
@@ -138,6 +139,71 @@ The Skatehive Leaderboard API aims to:
 - **Transparency**: Easily track and verify contributions.
 - **Recognition**: Highlight top contributors and their achievements.
 - **Engagement**: Foster a competitive and collaborative environment.
+
+## 🏋️ Skatehive Point System
+
+We’ve developed a point system to rank users based on their support and contributions to the Skatehive community. Here’s how it works:
+
+### **Point Categories**
+
+1. **Hive Balance**
+   - 0.1 points per Hive.
+   - Points capped at 1,000 Hive (maximum 100 points).
+
+2. **Hive Power (HP)**
+   - 0.5 points per HP.
+   - Points capped at 15,000 HP (maximum 7,500 points).
+
+3. **Gnars NFTs**
+   - 30 points per Gnars NFT.
+
+4. **Skatehive NFTs**
+   - 100 points per Skatehive NFT.
+
+5. **Witness Vote**
+   - 1000 points for voting for the Skatehive witness.
+
+6. **HBD Savings**
+   - 0.2 points per HBD in savings.
+   - Points capped at 1,000 HBD (maximum 200 points).
+
+7. **Number of Posts**
+   - 2 points per post.
+   - Points capped at 3,000 posts (maximum 6,000 points).
+
+8. **Voting Power**
+   - 0.1 points per USD of voting power.
+
+9. **Last Post Activity**
+   - 0 points deducted if the last post was within 7 days.
+   - Up to 100 points deducted for inactivity.
+
+10. **Ethereum Wallet Bonus**
+    - 5000 points for having a valid Ethereum wallet.
+
+### **Total Points Formula**
+
+```
+Total Points =
+(Capped Hive Points) +
+(Capped HP Points) +
+(Gnars NFT Points) +
+(Skatehive NFT Points) +
+(Witness Vote Points) +
+(Capped HBD Savings Points) +
+(Capped Post Points) +
+(Voting Power Points) -
+(Inactivity Penalty) +
+(Ethereum Wallet Bonus)
+```
+
+### **Benefits of the Point System**
+
+- **Recognition**: Reward top contributors.
+- **Engagement**: Encourage active participation.
+- **Transparency**: Users can see how their contributions are valued.
+
+By fostering a supportive and engaged community, we make Skatehive stronger and more vibrant!
 
 ## 📚 Learn More
 

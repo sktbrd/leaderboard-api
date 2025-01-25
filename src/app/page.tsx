@@ -17,10 +17,11 @@ interface LeaderboardRow {
   last_updated: string | null;
   last_post: string | null;
   post_count: number | null;
+  points: number | null;
 }
 
 export default function HomePage() {
-  const [sortField, setSortField] = useState<keyof LeaderboardRow>('hp_balance');
+  const [sortField, setSortField] = useState<keyof LeaderboardRow>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);
 
@@ -65,6 +66,7 @@ export default function HomePage() {
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
         <thead>
           <tr>
+            <th style={{ border: '1px solid #ddd', padding: '6px' }}>Rank</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('hive_author')}>Hive Author</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('max_voting_power_usd')}>Max VP</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('hive_balance')}>Hive Bal</th>
@@ -80,11 +82,13 @@ export default function HomePage() {
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_updated')}>Last Updated</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_post')}>Last Post</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('post_count')}>Post Count</th>
+            <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('points')}>Points</th>
           </tr>
         </thead>
         <tbody>
           {sortedLeaderboard.map((row, index) => (
             <tr key={index} style={{ borderBottom: '1px solid #ddd' }}>
+              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{index + 1}</td>
               <td style={{ border: '1px solid #ddd', padding: '6px' }}>
                 <a href={`https://hivehub.dev/@${row.hive_author}`} target="_blank" rel="noopener noreferrer">
                   {row.hive_author}
@@ -93,12 +97,22 @@ export default function HomePage() {
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.max_voting_power_usd !== null ? (row.max_voting_power_usd < 0.05 ? 'red' : row.max_voting_power_usd > 0.5 ? 'green' : 'yellow') : 'black' }}>
                 {row.max_voting_power_usd ?? 'N/A'}
               </td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.hive_balance ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.hp_balance ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.hbd_balance ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.hbd_savings_balance ?? 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.hive_balance ?? 0) > 500 ? 'green' : (row.hive_balance ?? 0) >= 100 ? 'yellow' : 'red' }}>
+                {row.hive_balance ?? 'N/A'}
+              </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.hp_balance ?? 0) < 500 ? 'red' : (row.hp_balance ?? 0) < 2000 ? 'yellow' : 'green' }}>
+                {row.hp_balance ?? 'N/A'}
+              </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.hbd_balance ?? 0) > 500 ? 'green' : (row.hbd_balance ?? 0) >= 100 ? 'yellow' : 'red' }}>
+                {row.hbd_balance ?? 'N/A'}
+              </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.hbd_savings_balance ?? 0) > 500 ? 'green' : (row.hbd_savings_balance ?? 0) >= 100 ? 'yellow' : 'red' }}>
+                {row.hbd_savings_balance ?? 'N/A'}
+              </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 'green' : 'red' }}>
-                {row.eth_address ? formatEthAddress(row.eth_address) : 'N/A'}
+                <a href={`https://app.zerion.io/${row.eth_address}`} target="_blank" rel="noopener noreferrer">
+                  {row.eth_address ? formatEthAddress(row.eth_address) : 'N/A'}
+                </a>
               </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.gnars_balance ?? 0) > 10 ? 'green' : (row.gnars_balance ?? 0) > 0 ? 'yellow' : 'red' }}>
                 {row.gnars_balance ?? 'N/A'}
@@ -113,12 +127,64 @@ export default function HomePage() {
                 {row.has_voted_in_witness ? 'Yes' : 'No'}
               </td>
               <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.eth_total_balance ?? 'N/A'}</td>
-              <td style={{ border: '1px solid #ddd', padding: '6px' }}>{row.last_updated ? new Date(row.last_updated).toLocaleString() : 'N/A'}</td>
+              <td style={{ border: '1px solid #ddd', padding: '6px', color: row.last_updated && new Date(row.last_updated) < new Date(new Date().setDate(new Date().getDate() - 1)) ? 'red' : 'green' }}>
+                {row.last_updated ? new Date(row.last_updated).toLocaleString() : 'N/A'}
+              </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: row.last_post && new Date(row.last_post) < new Date(new Date().setFullYear(new Date().getFullYear() - 1)) ? 'red' : 'green' }}>
                 {row.last_post ? new Date(row.last_post).toLocaleString() : 'N/A'}
               </td>
               <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.post_count ?? 0) === 0 ? 'red' : (row.post_count ?? 0) > 100 ? 'green' : 'yellow' }}>
                 {row.post_count ?? 'N/A'}
+              </td>
+              <td
+                style={{ border: '1px solid #ddd', padding: '6px' }}
+                title={
+                  `Hive Balance Points: ${Math.min(row.hive_balance ?? 0, 1000)} * 0.1 = ${(Math.min(row.hive_balance ?? 0, 1000) * 0.1).toFixed(2)}\n` +
+                  `HP Points: ${Math.min(row.hp_balance ?? 0, 15000)} * 0.5 = ${(Math.min(row.hp_balance ?? 0, 15000) * 0.5).toFixed(2)}\n` +
+                  `Gnars Points: ${row.gnars_balance ?? 0} * 30 = ${(row.gnars_balance ?? 0) * 30}\n` +
+                  `Skatehive NFT Points: ${row.skatehive_nft_balance ?? 0} * 100 = ${(row.skatehive_nft_balance ?? 0) * 100}\n` +
+                  `Witness Vote Points: ${row.has_voted_in_witness ? 1000 : 0}\n` +
+                  `HBD Savings Points: ${Math.min(row.hbd_savings_balance ?? 0, 1000)} * 0.2 = ${(Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2).toFixed(2)}\n` +
+                  `Post Count Points: ${Math.min(row.post_count ?? 0, 3000)} * 2 = ${(Math.min(row.post_count ?? 0, 3000) * 2)}\n` +
+                  `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 0.1 = ${(row.max_voting_power_usd ?? 0 * 0.1).toFixed(2)}\n` +
+                  `Inactivity Penalty: -${row.last_post ? Math.min(
+                    Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)),
+                    100
+                  ) : 100}\n` +
+                  `ETH Wallet Bonus: ${row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0}\n` +
+                  `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0}\n` +
+                  `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -10 : 0}\n` +
+                  `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -50 : 0}\n` +
+                  `Zero Gnars Balance Penalty: ${row.gnars_balance === 0 ? -300 : 0}\n` +
+                  `Zero Skatehive NFT Balance Penalty: ${row.skatehive_nft_balance === 0 ? -1000 : 0}\n` +
+                  `Zero HBD Savings Balance Penalty: ${row.hbd_savings_balance === 0 ? -20 : 0}\n` +
+                  `Zero Post Count Penalty: ${row.post_count === 0 ? -200 : 0}\n` +
+                  `----------------------------------------\n` +
+                  `Total Points: ${(
+                    (Math.min(row.hive_balance ?? 0, 1000) * 0.1) +
+                    (Math.min(row.hp_balance ?? 0, 15000) * 0.5) +
+                    ((row.gnars_balance ?? 0) * 30) +
+                    ((row.skatehive_nft_balance ?? 0) * 100) +
+                    (row.has_voted_in_witness ? 1000 : 0) +
+                    (Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2) +
+                    (Math.min(row.post_count ?? 0, 3000) * 2) +
+                    ((row.max_voting_power_usd ?? 0) * 0.1) + // Add points for voting power
+                    (row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0) +
+                    (!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0) -
+                    Math.min(
+                      row.last_post ? Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)) : 100,
+                      100
+                    ) +
+                    (row.hive_balance === 0 ? -10 : 0) +
+                    (row.hp_balance === 0 ? -50 : 0) +
+                    (row.gnars_balance === 0 ? -300 : 0) +
+                    (row.skatehive_nft_balance === 0 ? -1000 : 0) +
+                    (row.hbd_savings_balance === 0 ? -20 : 0) +
+                    (row.post_count === 0 ? -200 : 0)
+                  ).toFixed(2)}`
+                }
+              >
+                {row.points ?? 'N/A'}
               </td>
             </tr>
           ))}

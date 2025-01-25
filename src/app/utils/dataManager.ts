@@ -98,7 +98,8 @@ export const fetchAndStorePartialData = async (): Promise<void> => {
 
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
-
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
         logWithColor('All data fetched and stored successfully.', 'green');
     } catch (error) {
         logWithColor(`Error during data processing: ${error}`, 'red');
@@ -116,10 +117,10 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
 
         logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
 
-        // Step 4: Upsert authors into the database
+        // Step 1: Upsert authors into the database
         await upsertAuthors(subscribers);
 
-        // Step 5: Process each batch of subscribers
+        // Step 2: Process each batch of subscribers
         const totalBatches = Math.ceil(subscribers.length / batchSize);
 
         for (let i = 0; i < totalBatches; i++) {
@@ -138,7 +139,11 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
-        logWithColor('All data fetched and stored successfully.', 'green');
+        // Step 3: Calculate and upsert points
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
+
+        logWithColor('All data fetched, stored, and points calculated successfully.', 'green');
     } catch (error) {
         logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
         throw error;
@@ -203,3 +208,138 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
         logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
     }
 };
+
+// Function to calculate and update points for all users
+export const calculateAndUpsertPoints = async () => {
+    try {
+        // Fetch all data from the leaderboard
+        const leaderboardData = await getDatabaseData();
+
+        if (!leaderboardData || leaderboardData.length === 0) {
+            logWithColor('No data found in the leaderboard.', 'red');
+            return;
+        }
+
+        // Define multipliers and caps for points calculation
+        const POINT_MULTIPLIERS = {
+            hive_balance: 0.1,
+            hp_balance: 0.5,
+            gnars_balance: 30,
+            skatehive_nft_balance: 100,
+            witness_vote: 1000, // Increased weight for witness votes
+            hbd_savings_balance: 0.2,
+            post_count: 2,
+            max_voting_power_usd: 0.1, // Points for voting power
+            max_inactivity_penalty: 100,
+            eth_wallet_penalty: -2000, // Penalty for missing valid Ethereum wallet
+            zero_value_penalties: {
+                hive_balance: -10,
+                hp_balance: -50,
+                gnars_balance: -300,
+                skatehive_nft_balance: -1000,
+                hbd_savings_balance: -20,
+                post_count: -200, // More severe penalty for zero post_count
+            },
+        };
+
+        const CAPS = {
+            hive_balance: 1000,
+            hp_balance: 15000, // Increased cap for HP
+            hbd_balance: 1000,
+            hbd_savings_balance: 1000,
+            post_count: 3000, // Increased cap for post count
+        };
+
+        // Helper function to apply cap
+        const capValue = (value: number, cap: number) => Math.min(value, cap);
+
+        // Calculate points for each user
+        const updatedData = leaderboardData.map(user => {
+            const {
+                hive_balance = 0,
+                hp_balance = 0,
+                gnars_balance = 0,
+                skatehive_nft_balance = 0,
+                has_voted_in_witness = false,
+                hbd_balance = 0,
+                hbd_savings_balance = 0,
+                post_count = 0,
+                max_voting_power_usd = 0, // Added max_voting_power_usd
+                eth_address = null, // Added eth_address check
+                last_post,
+                points: currentPoints = 0, // Fetch current points if available
+            } = user;
+
+            const cappedHiveBalance = capValue(hive_balance, CAPS.hive_balance);
+            const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
+            const cappedHbdBalance = capValue(hbd_balance, CAPS.hbd_balance);
+            const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
+            const cappedPostCount = capValue(post_count, CAPS.post_count);
+
+            const daysSinceLastPost = last_post
+                ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
+                : POINT_MULTIPLIERS.max_inactivity_penalty;
+
+            const hasValidEthWallet =
+                eth_address && eth_address !== '0x0000000000000000000000000000000000000000';
+
+            const ethWalletBonus = hasValidEthWallet ? 5000 : 0; // Add 5000 points for valid wallet
+            const ethWalletPenalty = !hasValidEthWallet ? POINT_MULTIPLIERS.eth_wallet_penalty : 0; // Apply penalty if no wallet
+
+            const zeroValuePenalties = [
+                { value: hive_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hive_balance },
+                { value: hp_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hp_balance },
+                { value: gnars_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.gnars_balance },
+                { value: skatehive_nft_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.skatehive_nft_balance },
+                { value: hbd_savings_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hbd_savings_balance },
+                { value: post_count, penalty: POINT_MULTIPLIERS.zero_value_penalties.post_count },
+            ].reduce((acc, { value, penalty }) => acc + (value === 0 ? penalty : 0), 0);
+
+            const points =
+                (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance) +
+                (cappedHpBalance * POINT_MULTIPLIERS.hp_balance) +
+                (gnars_balance * POINT_MULTIPLIERS.gnars_balance) +
+                (skatehive_nft_balance * POINT_MULTIPLIERS.skatehive_nft_balance) +
+                (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : 0) +
+                (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
+                (cappedPostCount * POINT_MULTIPLIERS.post_count) +
+                (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) + // Add points for voting power
+                ethWalletBonus +
+                ethWalletPenalty - // Add penalty for missing wallet
+                Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
+                zeroValuePenalties; // Add penalties for zero values
+
+            return {
+                ...user,
+                points: Math.max(points, 0), // Ensure points are non-negative
+                hasUpdatedPoints: currentPoints !== Math.max(points, 0), // Track if points have changed
+            };
+        });
+
+        // Update points only for users with changed points
+        const usersToUpdate = updatedData.filter(user => user.hasUpdatedPoints);
+        if (usersToUpdate.length === 0) {
+            logWithColor('No changes in points detected. Skipping updates.', 'yellow');
+            return;
+        }
+
+        const { error } = await supabase
+            .from('leaderboard')
+            .upsert(
+                usersToUpdate.map(({ hive_author, points }) => ({ hive_author, points })),
+                { onConflict: 'hive_author' }
+            );
+
+        if (error) {
+            logWithColor(`Failed to batch update points: ${error.message}`, 'red');
+        } else {
+            logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+        }
+    } catch (error) {
+        logWithColor(`Error in calculateAndUpsertPoints: ${(error as Error).message}`, 'red');
+    }
+};
+
+
+
+

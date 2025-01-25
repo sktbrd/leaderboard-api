@@ -22,7 +22,7 @@ export const fetchSubscribers = async (community: string, limit = 100): Promise<
         });
 
         if (!response.ok) {
-            logWithColor(`Error fetching Hive API for subscribers: ${response.statusText}`, 'red');
+            logWithColor(`Error fetching Hive API for subscribers: ${response.text}`, 'red');
             throw new Error(`Error fetching Hive API for subscribers: ${response.statusText}`);
         }
 
