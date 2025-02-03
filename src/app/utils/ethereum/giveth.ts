@@ -103,8 +103,9 @@ export const matchAndUpsertDonors = async () => {
       const userDonation = donationAggregation.get(hive_author);
       userDonation.giveth_donations_usd += donation.valueUsd;
       userDonation.giveth_donations_amount += donation.amount;
+      // fix donation ammounts to 2 decimal places
+      userDonation.giveth_donations_usd = Math.round(userDonation.giveth_donations_usd * 100) / 100;
     }
-
     // Convert map values to an array
     const upsertData = Array.from(donationAggregation.values()).map(({ hive_author, eth_address, giveth_donations_usd, giveth_donations_amount }) => ({
       hive_author,
