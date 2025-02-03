@@ -14,40 +14,44 @@ Welcome to the Skatehive Leaderboard project! This application is designed to cr
 ├── package.json
 ├── pnpm-lock.yaml
 ├── public
-│   ├── file.svg
-│   ├── globe.svg
-│   ├── next.svg
-│   ├── vercel.svg
-│   └── window.svg
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── next.svg
+│   ├── vercel.svg
+│   └── window.svg
 ├── src
-│   └── app
-│       ├── api
-│       │   ├── README.md
-│       │   ├── cron
-│       │   │   └── update
-│       │   │       └── route.ts
-│       │   ├── ethHelpers
-│       │   │   └── route.ts
-│       │   ├── leaderboard
-│       │   │   └── route.ts
-│       │   └── skatehive
-│       │       └── route.ts
-│       ├── favicon.ico
-│       ├── globals.css
-│       ├── layout.tsx
-│       ├── page.module.css
-│       ├── page.tsx
-│       └── utils
-│           ├── README.md
-│           ├── convertVeststoHP.ts
-│           ├── dataManager.ts
-│           ├── databaseHelpers.ts
-│           ├── ethereumUtils.ts
-│           ├── fetchSubscribers.ts
-│           ├── hiveUtils.ts
-│           ├── supabaseClient.ts
-│           ├── tokenAbi.ts
-│           └── types.ts
+│   ├── app
+│   │   ├── api
+│   │   │   ├── README.md
+│   │   │   ├── cron
+│   │   │   │   └── update
+│   │   │   │       └── route.ts
+│   │   │   ├── ethHelpers
+│   │   │   │   └── route.ts
+│   │   │   ├── leaderboard
+│   │   │   │   └── route.ts
+│   │   │   └── skatehive
+│   │   │       └── route.ts
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.module.css
+│   │   ├── page.tsx
+│   │   └── utils
+│   │       ├── README.md
+│   │       ├── dataManager.ts
+│   │       ├── ethereum
+│   │       │   ├── ethereumUtils.ts
+│   │       │   ├── giveth.ts
+│   │       │   └── tokenAbi.ts
+│   │       ├── hive
+│   │       │   ├── fetchSubscribers.ts
+│   │       │   └── hiveUtils.ts
+│   │       ├── supabase
+│   │       │   ├── getLeaderboard.ts
+│   │       │   └── supabaseClient.ts
+│   │       └── types.ts
+│   └── models
 ├── tsconfig.json
 └── vercel.json
 ```
@@ -99,24 +103,28 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 2. Create a table named `leaderboard` with the following schema:
 
 ```sql
-CREATE TABLE leaderboard (
-  id SERIAL PRIMARY KEY,
-  hive_author VARCHAR NOT NULL,
-  hive_balance FLOAT,
-  hp_balance FLOAT,
-  hbd_balance FLOAT,
-  hbd_savings_balance FLOAT,
-  has_voted_in_witness BOOLEAN,
-  eth_address VARCHAR,
-  gnars_balance FLOAT,
-  gnars_votes FLOAT,
-  skatehive_nft_balance FLOAT,
-  max_voting_power_usd FLOAT,
-  last_updated TIMESTAMP,
-  last_post TIMESTAMP,
-  post_count INT,
-  points FLOAT
-);
+create table public.leaderboard (
+  id serial not null,
+  hive_author text not null,
+  hive_balance double precision null,
+  hp_balance double precision null,
+  hbd_balance double precision null,
+  hbd_savings_balance double precision null,
+  has_voted_in_witness boolean null,
+  eth_address character varying null,
+  gnars_balance double precision null,
+  gnars_votes double precision null,
+  skatehive_nft_balance double precision null,
+  max_voting_power_usd double precision null,
+  last_updated timestamp without time zone null,
+  last_post timestamp without time zone null,
+  post_count integer null,
+  points double precision null,
+  giveth_donations_usd numeric null default 0,
+  giveth_donations_amount numeric null default 0,
+  constraint leaderboard_pkey primary key (id),
+  constraint leaderboard_hive_author_key unique (hive_author)
+) TABLESPACE pg_default;
 ```
 
 3. Add your Supabase URL and Anon Key to the `.env` file:
@@ -145,41 +153,19 @@ The Skatehive Leaderboard API aims to:
 We’ve developed a point system to rank users based on their support and contributions to the Skatehive community. Here’s how it works:
 
 ### **Point Categories**
-
-1. **Hive Balance**
-   - 0.1 points per Hive.
-   - Points capped at 1,000 Hive (maximum 100 points).
-
-2. **Hive Power (HP)**
-   - 0.5 points per HP.
-   - Points capped at 12,000 HP (maximum 6,000 points).
-
-3. **Gnars Votes**
-   - 30 points per Gnars Vote.
-
-4. **Skatehive NFTs**
-   - 50 points per Skatehive NFT.
-
-5. **Witness Vote**
-   - 1000 points for voting for the Skatehive witness.
-
-6. **HBD Savings**
-   - 0.2 points per HBD in savings.
-   - Points capped at 1,000 HBD (maximum 200 points).
-
-7. **Number of Posts**
-   - 0.1 points per post.
-   - Points capped at 3,000 posts (maximum 300 points).
-
-8. **Voting Power**
-   - 1000 points per USD of voting power.
-
-9. **Last Post Activity**
-   - 0 points deducted if the last post was within 7 days.
-   - Up to 100 points deducted for inactivity.
-
-10. **Ethereum Wallet Bonus**
-    - 5000 points for having a valid Ethereum wallet.
+| **Category**              | **Points**                                                                 |
+|---------------------------|----------------------------------------------------------------------------|
+| **Hive Balance**          | 0.1 points per Hive, capped at 1,000 Hive (max 100 points)                 |
+| **Hive Power (HP)**       | 0.5 points per HP, capped at 12,000 HP (max 6,000 points)                  |
+| **Gnars Votes**           | 30 points per Gnars Vote                                                   |
+| **Skatehive NFTs**        | 50 points per Skatehive NFT                                                |
+| **Witness Vote**          | 1000 points for voting for the Skatehive witness                           |
+| **HBD Savings**           | 0.2 points per HBD in savings, capped at 1,000 HBD (max 200 points)        |
+| **Number of Posts**       | 0.1 points per post, capped at 3,000 posts (max 300 points)                |
+| **Voting Power**          | 1000 points per USD of voting power                                        |
+| **Giveth Donations**      | 5 points per USD donated, capped at 1,000 USD (max 5,000 points)           |
+| **Last Post Activity**    | 0 points deducted if last post within 7 days, up to 100 points deducted    |
+| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet                             |
 
 ### **Total Points Formula**
 

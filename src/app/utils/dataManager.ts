@@ -6,13 +6,14 @@ import { convertVestingSharesToHivePower, calculateUserVoteValue } from './hive/
 import { fetchSubscribers } from './hive/fetchSubscribers';
 import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereum/ethereumUtils';
 import { getLeaderboard } from './supabase/getLeaderboard';
+import { matchAndUpsertDonors } from './ethereum/giveth';
 
 
 
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     try {
-        const authorData: DataBaseAuthor[] = authors.map(({ hive_author }) => ({
+        const authorData: Partial<DataBaseAuthor>[] = authors.map(({ hive_author }) => ({
             hive_author,
         }));
 
@@ -86,13 +87,21 @@ export const fetchAndStorePartialData = async (): Promise<void> => {
 
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
+
+        // ✅ Add Giveth Donations Processing Here
+        logWithColor('Fetching and processing Giveth donations...', 'blue');
+        await matchAndUpsertDonors();
+
+        // ✅ Now Calculate Points
         logWithColor('Calculating points for all users...', 'blue');
         await calculateAndUpsertPoints();
+
         logWithColor('All data fetched and stored successfully.', 'green');
     } catch (error) {
         logWithColor(`Error during data processing: ${error}`, 'red');
     }
 };
+
 
 // Helper function to fetch and upsert account data for each subscriber
 export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }) => {
@@ -141,8 +150,8 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
             gnars_votes: gnars_votes ? parseFloat(gnars_votes.toString()) : 0,
             skatehive_nft_balance: skatehive_nft_balance ? parseFloat(skatehive_nft_balance.toString()) : 0,
             max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
-            last_updated: new Date().toISOString(),
-            last_post: accountInfo.last_post,
+            last_updated: new Date(),
+            last_post: new Date(accountInfo.last_post),
             post_count: accountInfo.post_count,
         };
 
@@ -214,6 +223,9 @@ export const calculateAndUpsertPoints = async () => {
                 points: currentPoints = 0, // Fetch current points if available
             } = user;
 
+            const donationUSD = user.giveth_donations_usd ?? 0;
+            const donationPoints = Math.min(donationUSD, 1000) * 5;
+
             const cappedHiveBalance = capValue(hive_balance, CAPS.hive_balance);
             const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
             const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
@@ -250,6 +262,7 @@ export const calculateAndUpsertPoints = async () => {
                 ethWalletBonus +
                 ethWalletPenalty -
                 Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
+                donationPoints + // <-- added donation points
                 zeroValuePenalties;
 
             return {
@@ -284,13 +297,15 @@ export const calculateAndUpsertPoints = async () => {
 };
 
 export const fetchAndStoreAllData = async (): Promise<void> => {
-    const batchSize = 25; // Number of accounts processed in parallel
+    const batchSize = 25;
     const community = 'hive-173115';
 
     try {
         logWithColor('Starting to fetch and store all data...', 'blue');
 
         const subscribers = await fetchSubscribers(community);
+        // dummy xvlad subscriber 
+        // const subscribers = [{ hive_author: 'xvlad' }];
 
         logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
 
@@ -316,6 +331,10 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
+        // ✅ Add Giveth Donations Processing Here
+        logWithColor('Fetching and processing Giveth donations...', 'blue');
+        await matchAndUpsertDonors();
+
         // Step 3: Calculate and upsert points
         logWithColor('Calculating points for all users...', 'blue');
         await calculateAndUpsertPoints();
@@ -326,6 +345,7 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
         throw error;
     }
 };
+
 
 
 

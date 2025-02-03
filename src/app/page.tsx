@@ -17,6 +17,7 @@ interface LeaderboardRow {
   last_updated: string | null;
   last_post: string | null;
   post_count: number | null;
+  giveth_donations_usd: number | null;
   points: number | null;
 }
 
@@ -97,6 +98,7 @@ export default function HomePage() {
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_updated')}>Last Updated</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('last_post')}>Last Post</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('post_count')}>Post Count</th>
+            <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('giveth_donations_usd')}>Giveth Donations USD</th>
             <th style={{ border: '1px solid #ddd', padding: '6px', cursor: 'pointer' }} onClick={() => handleSortChange('points')}>Points</th>
           </tr>
         </thead>
@@ -151,6 +153,9 @@ export default function HomePage() {
               <td style={{ border: '1px solid #ddd', padding: '6px', color: (row.post_count ?? 0) === 0 ? 'red' : (row.post_count ?? 0) > 100 ? 'green' : 'yellow' }}>
                 {row.post_count ?? 'N/A'}
               </td>
+              <td style={{ border: '1px solid #ddd', padding: '6px' }}>
+                {row.giveth_donations_usd ?? 'N/A'}
+              </td>
               <td
                 style={{ border: '1px solid #ddd', padding: '6px' }}
                 title={
@@ -161,13 +166,10 @@ export default function HomePage() {
                   `Witness Vote Points: ${row.has_voted_in_witness ? 1000 : 0}\n` +
                   `HBD Savings Points: ${Math.min(row.hbd_savings_balance ?? 0, 1000)} * 0.2 = ${(Math.min(row.hbd_savings_balance ?? 0, 1000) * 0.2).toFixed(2)}\n` +
                   `Post Count Points: ${Math.min(row.post_count ?? 0, 3000)} * 0.1 = ${(Math.min(row.post_count ?? 0, 3000) * 0.1)}\n` +
-                  `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 1000 = ${(row.max_voting_power_usd ?? 0 * 1000).toFixed(2)}\n` +
-                  `Inactivity Penalty: -${row.last_post ? Math.min(
-                    Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)),
-                    100
-                  ) : 100}\n` +
+                  `Voting Power Points: ${row.max_voting_power_usd ?? 0} * 1000 = ${((row.max_voting_power_usd ?? 0) * 1000).toFixed(2)}\n` +
                   `ETH Wallet Bonus: ${row.eth_address && row.eth_address !== '0x0000000000000000000000000000000000000000' ? 5000 : 0}\n` +
                   `ETH Wallet Penalty: ${!row.eth_address || row.eth_address === '0x0000000000000000000000000000000000000000' ? -2000 : 0}\n` +
+                  `Donation Points: ${row.giveth_donations_usd !== null ? Math.min(row.giveth_donations_usd, 1000) * 5 : 0}\n` +
                   `Zero Hive Balance Penalty: ${row.hive_balance === 0 ? -1000 : 0}\n` +
                   `Zero HP Balance Penalty: ${row.hp_balance === 0 ? -5000 : 0}\n` +
                   `Zero Gnars Votes Penalty: ${row.gnars_votes === 0 ? -300 : 0}\n` +
@@ -190,6 +192,7 @@ export default function HomePage() {
                       row.last_post ? Math.floor((Date.now() - new Date(row.last_post).getTime()) / (1000 * 60 * 60 * 24)) : 100,
                       100
                     ) +
+                    (row.giveth_donations_usd !== null ? Math.min(row.giveth_donations_usd, 1000) * 5 : 0) +
                     (row.hive_balance === 0 ? -1000 : 0) +
                     (row.hp_balance === 0 ? -5000 : 0) +
                     (row.gnars_votes === 0 ? -300 : 0) +

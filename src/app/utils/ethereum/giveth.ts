@@ -17,24 +17,27 @@ const GET_ALL_DONATIONS_BY_PROJECT = gql`
         valueUsd
         user {
           walletAddress
+          name
         }
       }
     }
   }
 `;
 
-
 export type GivethResponse = {
   donationsByProjectId: {
     donations: {
       amount: number;
       valueUsd: number;
-      user: { walletAddress: string };
+      user: {
+        walletAddress: string;
+        name: string;
+      };
     }[];
   };
 };
 
-/** ✅ Fetches all donation records from Giveth API */
+/** ✅ Fetch all donation records from Giveth API */
 export const fetchGivethDonations = async (): Promise<GivethResponse> => {
   try {
     const data = await request<GivethResponse>(GIVETH_API_URL, GET_ALL_DONATIONS_BY_PROJECT);
@@ -44,3 +47,83 @@ export const fetchGivethDonations = async (): Promise<GivethResponse> => {
     throw new Error('Failed to fetch data from Giveth API');
   }
 };
+
+/** ✅ Fetch all current users from Supabase */
+export const fetchAllHiveAuthors = async () => {
+  const { data, error } = await supabase
+    .from('leaderboard')
+    .select('hive_author, eth_address, giveth_donations_usd, giveth_donations_amount');
+
+  if (error) {
+    logWithColor(`Failed to fetch Hive authors: ${error.message}`, 'red');
+    throw new Error('Failed to fetch Hive authors');
+  }
+
+  return data;
+};
+
+/** ✅ Match Giveth donors to existing users or create new ones */
+export const matchAndUpsertDonors = async () => {
+  try {
+    // Fetch donations
+    const givethData = await fetchGivethDonations();
+    const donations = givethData.donationsByProjectId.donations;
+
+    // Fetch existing users
+    const existingUsers = await fetchAllHiveAuthors();
+
+    // Create a map for quick eth_address lookup
+    const ethToHiveAuthorMap = new Map(
+      existingUsers
+        .filter((user) => user.eth_address) // Only users with Ethereum wallets
+        .map((user) => [user.eth_address.toLowerCase(), user])
+    );
+
+    const donationAggregation = new Map(); // To aggregate donations per user
+
+    for (const donation of donations) {
+      const { walletAddress, name } = donation.user;
+      const eth_address = walletAddress.toLowerCase();
+      const existingUser = ethToHiveAuthorMap.get(eth_address);
+
+      let hive_author = existingUser?.hive_author ?? (name
+        ? `donator_${name.replace(/\s+/g, '_')}`
+        : `donator_${walletAddress.substring(0, 6)}` // Use wallet address as fallback
+      );
+
+      if (!donationAggregation.has(hive_author)) {
+        donationAggregation.set(hive_author, {
+          hive_author,
+          eth_address,
+          giveth_donations_usd: 0,
+          giveth_donations_amount: 0,
+        });
+      }
+
+      const userDonation = donationAggregation.get(hive_author);
+      userDonation.giveth_donations_usd += donation.valueUsd;
+      userDonation.giveth_donations_amount += donation.amount;
+    }
+
+    // Convert map values to an array
+    const upsertData = Array.from(donationAggregation.values()).map(({ hive_author, eth_address, giveth_donations_usd, giveth_donations_amount }) => ({
+      hive_author,
+      eth_address,
+      giveth_donations_usd,
+      giveth_donations_amount
+    })); // 🚨 `id` is NOT included here
+
+    // ✅ Bulk upsert aggregated data
+    if (upsertData.length > 0) {
+      const { error } = await supabase.from('leaderboard').upsert(upsertData, { onConflict: 'hive_author' });
+      if (error) logWithColor(`Error inserting/updating donors: ${error.message}`, 'red');
+      else logWithColor(`Successfully upserted ${upsertData.length} donors.`, 'green');
+    }
+  } catch (error) {
+    logWithColor(`Error in matchAndUpsertDonors: ${error}`, 'red');
+  }
+};
+
+
+
+
