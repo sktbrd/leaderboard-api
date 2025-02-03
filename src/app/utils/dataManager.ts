@@ -238,7 +238,8 @@ export const calculateAndUpsertPoints = async () => {
             const hasValidEthWallet =
                 eth_address && eth_address !== '0x0000000000000000000000000000000000000000';
 
-            const ethWalletBonus = hasValidEthWallet ? 5000 : 0; // Add 5000 points for valid wallet
+            // Modified to ensure that users whose hive_author starts with "donator" do not receive the wallet bonus.
+            const ethWalletBonus = (hasValidEthWallet && !user.hive_author.toLowerCase().startsWith('donator')) ? 5000 : 0;
             const ethWalletPenalty = !hasValidEthWallet ? POINT_MULTIPLIERS.eth_wallet_penalty : 0; // Apply penalty if no wallet
 
             const zeroValuePenalties = [
