@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { tokenAbi } from './tokenAbi';
-import { logWithColor } from './hiveUtils';
+import { logWithColor } from '../hive/hiveUtils';
 
 const provider = new ethers.JsonRpcProvider(`https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
 

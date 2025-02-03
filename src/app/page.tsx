@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { supabase } from './utils/supabaseClient';
+import { supabase } from './utils/supabase/supabaseClient';
 interface LeaderboardRow {
   hive_author: string;
   max_voting_power_usd: number | null;

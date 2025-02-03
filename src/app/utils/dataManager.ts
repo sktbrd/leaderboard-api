@@ -1,13 +1,13 @@
 import { Asset, Client } from '@hiveio/dhive';
-import { supabase } from './supabaseClient'; // Use the existing Supabase client
-import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveUtils';
+import { supabase } from './supabase/supabaseClient'; // Use the existing Supabase client
+import { logWithColor, fetchAccountInfo, extractEthAddressFromHiveAccount } from './hive/hiveUtils';
 import { DataBaseAuthor } from './types';
-import { convertVestingSharesToHivePower, calculateUserVoteValue } from './convertVeststoHP';
-import { fetchSubscribers } from './fetchSubscribers';
-import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereumUtils';
+import { convertVestingSharesToHivePower, calculateUserVoteValue } from './hive/hiveUtils';
+import { fetchSubscribers } from './hive/fetchSubscribers';
+import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereum/ethereumUtils';
+import { getLeaderboard } from './supabase/getLeaderboard';
 
-const HiveClient = new Client('https://api.deathwing.me');
-export default HiveClient;
+
 
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
@@ -51,18 +51,6 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
     }
 };
 
-export const getDatabaseData = async () => {
-    try {
-        const { data, error } = await supabase.from('leaderboard').select('*');
-        if (error) {
-            throw new Error(`Failed to fetch data: ${error.message}`);
-        }
-        return data;
-    } catch (error) {
-        logWithColor(`Error fetching data from the database: ${error}`, 'red');
-        throw error;
-    }
-};
 
 export const fetchAndStorePartialData = async (): Promise<void> => {
     const batchSize = 25;
@@ -70,7 +58,7 @@ export const fetchAndStorePartialData = async (): Promise<void> => {
 
     try {
         const subscribers = await fetchSubscribers(community);
-        const databaseData = await getDatabaseData();
+        const databaseData = await getLeaderboard();
 
         // Find the 100 oldest subscribers by `last_updated`
         const lastUpdatedData = databaseData
@@ -106,50 +94,6 @@ export const fetchAndStorePartialData = async (): Promise<void> => {
     }
 };
 
-export const fetchAndStoreAllData = async (): Promise<void> => {
-    const batchSize = 25; // Number of accounts processed in parallel
-    const community = 'hive-173115';
-
-    try {
-        logWithColor('Starting to fetch and store all data...', 'blue');
-
-        const subscribers = await fetchSubscribers(community);
-
-        logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
-
-        // Step 1: Upsert authors into the database
-        await upsertAuthors(subscribers);
-
-        // Step 2: Process each batch of subscribers
-        const totalBatches = Math.ceil(subscribers.length / batchSize);
-
-        for (let i = 0; i < totalBatches; i++) {
-            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
-
-            await Promise.all(
-                batch.map(async (subscriber) => {
-                    try {
-                        await fetchAndUpsertAccountData(subscriber);
-                    } catch (error) {
-                        logWithColor(`Failed to process subscriber ${subscriber.hive_author}: ${error}`, 'red');
-                    }
-                })
-            );
-
-            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
-        }
-
-        // Step 3: Calculate and upsert points
-        logWithColor('Calculating points for all users...', 'blue');
-        await calculateAndUpsertPoints();
-
-        logWithColor('All data fetched, stored, and points calculated successfully.', 'green');
-    } catch (error) {
-        logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
-        throw error;
-    }
-};
-
 // Helper function to fetch and upsert account data for each subscriber
 export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }) => {
     const { hive_author } = subscriber;
@@ -175,7 +119,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
         let gnars_balance = 0;
         let gnars_votes = 0;
         let skatehive_nft_balance = 0;
-        const eth_address = extractEthAddress(accountInfo.json_metadata);
+        const eth_address = extractEthAddressFromHiveAccount(accountInfo.json_metadata);
         if (eth_address === '0x0000000000000000000000000000000000000000') {
             logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
         }
@@ -213,7 +157,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
 export const calculateAndUpsertPoints = async () => {
     try {
         // Fetch all data from the leaderboard
-        const leaderboardData = await getDatabaseData();
+        const leaderboardData = await getLeaderboard();
 
         if (!leaderboardData || leaderboardData.length === 0) {
             logWithColor('No data found in the leaderboard.', 'red');
@@ -336,6 +280,50 @@ export const calculateAndUpsertPoints = async () => {
         }
     } catch (error) {
         logWithColor(`Error in calculateAndUpsertPoints: ${(error as Error).message}`, 'red');
+    }
+};
+
+export const fetchAndStoreAllData = async (): Promise<void> => {
+    const batchSize = 25; // Number of accounts processed in parallel
+    const community = 'hive-173115';
+
+    try {
+        logWithColor('Starting to fetch and store all data...', 'blue');
+
+        const subscribers = await fetchSubscribers(community);
+
+        logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
+
+        // Step 1: Upsert authors into the database
+        await upsertAuthors(subscribers);
+
+        // Step 2: Process each batch of subscribers
+        const totalBatches = Math.ceil(subscribers.length / batchSize);
+
+        for (let i = 0; i < totalBatches; i++) {
+            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+
+            await Promise.all(
+                batch.map(async (subscriber) => {
+                    try {
+                        await fetchAndUpsertAccountData(subscriber);
+                    } catch (error) {
+                        logWithColor(`Failed to process subscriber ${subscriber.hive_author}: ${error}`, 'red');
+                    }
+                })
+            );
+
+            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
+        }
+
+        // Step 3: Calculate and upsert points
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
+
+        logWithColor('All data fetched, stored, and points calculated successfully.', 'green');
+    } catch (error) {
+        logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
+        throw error;
     }
 };
 

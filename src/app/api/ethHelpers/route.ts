@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from '@/app/utils/ethereumUtils';
+import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from '@/app/utils/ethereum/ethereumUtils';
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);

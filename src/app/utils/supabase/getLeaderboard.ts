@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'; // Use the existing Supabase client
 
-export const getDatabaseData = async () => {
+export const getLeaderboard = async () => {
     try {
         const { data } = await supabase.from('leaderboard').select('*');
         if (data) {
