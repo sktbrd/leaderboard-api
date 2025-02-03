@@ -1,4 +1,4 @@
-import { Asset, Client } from '@hiveio/dhive';
+import { Asset } from '@hiveio/dhive';
 import { supabase } from './supabase/supabaseClient'; // Use the existing Supabase client
 import { logWithColor, fetchAccountInfo, extractEthAddressFromHiveAccount } from './hive/hiveUtils';
 import { DataBaseAuthor } from './types';

@@ -86,7 +86,7 @@ export const matchAndUpsertDonors = async () => {
       const eth_address = walletAddress.toLowerCase();
       const existingUser = ethToHiveAuthorMap.get(eth_address);
 
-      let hive_author = existingUser?.hive_author ?? (name
+      const hive_author = existingUser?.hive_author ?? (name
         ? `donator_${name.replace(/\s+/g, '_')}`
         : `donator_${walletAddress.substring(0, 6)}` // Use wallet address as fallback
       );
