@@ -1,6 +1,6 @@
 {
-  "name": "skatehive-leaderboard",
-  "version": "0.1.0",
+  "name": "skatehive-app-api",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -12,11 +12,13 @@
     "@hiveio/dhive": "^1.3.2",
     "@supabase/supabase-js": "^2.47.16",
     "@tanstack/react-query": "^5.64.2",
+    "@types/pg": "^8.11.11",
     "@wagmi/connectors": "^5.7.4",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
     "ethers": "^6.13.5",
     "next": "15.1.5",
+    "pg": "^8.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "viem": "^2.22.9",
