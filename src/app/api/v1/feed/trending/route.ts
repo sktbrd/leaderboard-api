@@ -119,7 +119,7 @@ export async function GET(request: Request) {
         a.reputation, 
         a.followers, 
         a.followings
-      ORDER BY c.created DESC
+      ORDER BY c.pending_payout_value DESC
       LIMIT ${limit}
       OFFSET ${offset};
     `);

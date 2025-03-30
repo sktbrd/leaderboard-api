@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     console.log('Received vote data:', JSON.stringify(body, null, 2));
 
     // Validate required fields
-    if (!body.author || !body.permlink || !body.voter || !body.posting_key || !body.weight) {
+    if (!body.author || !body.permlink || !body.voter || !body.posting_key || body.weight === null) {
       return NextResponse.json(
         { 
           success: false, 
@@ -30,6 +30,9 @@ export async function POST(request: Request) {
       permlink: body.permlink,
       weight: Math.min(Math.max(body.weight, -10000), 10000) // Ensure weight is between -10000 and 10000
     };
+
+    // Log the vote operation to server terminal
+    console.log('Vote operation:', JSON.stringify(voteOp, null, 2));
 
     // Deserialize the posting key
     const key = PrivateKey.from(body.posting_key);

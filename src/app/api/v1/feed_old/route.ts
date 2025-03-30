@@ -3,6 +3,8 @@ import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
+const parent_author = process.env.parent_author || "xvlad"
+const parent_permlink = process.env.parent_permlink || "nxvsjarvmp"
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
@@ -17,9 +19,9 @@ export async function GET(request: Request) {
     // Get total count for pagination
     const [totalRows] = await db.executeQuery(`
       SELECT COUNT(*) as total
-      FROM comments
-      WHERE parent_permlink SIMILAR TO 'snap-container-%'
-      AND json_metadata @> '{"tags": ["hive-173115"]}'
+      FROM comments c
+      WHERE c.parent_author = '${parent_author}' 
+      AND c.parent_permlink = '${parent_permlink}'
     `);
     
     const total = parseInt(totalRows[0].total);
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
     // Get paginated data
     const [rows, headers] = await db.executeQuery(`
       SELECT 
+        c.title, 
         c.body, 
         c.author, 
         c.permlink, 
@@ -56,7 +59,7 @@ export async function GET(request: Request) {
         c.percent_hbd, 
         c.allow_votes, 
         c.allow_curation_rewards, 
-        c.deleted,
+        c.deleted, 
         a.json_metadata AS user_json_metadata, 
         a.reputation, 
         a.followers, 
@@ -81,10 +84,11 @@ export async function GET(request: Request) {
       LEFT JOIN operation_effective_comment_vote_view v 
         ON c.author = v.author 
         AND c.permlink = v.permlink
-      WHERE c.parent_permlink SIMILAR TO 'snap-container-%'
-      AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+      WHERE c.parent_author = '${parent_author}' 
+      AND c.parent_permlink = '${parent_permlink}'
       AND c.deleted = false
       GROUP BY 
+        c.title, 
         c.body, 
         c.author, 
         c.permlink, 
