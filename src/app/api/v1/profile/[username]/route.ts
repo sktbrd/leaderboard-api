@@ -49,10 +49,34 @@ export async function GET(
       );
     }
 
+    // Get following? information
+    const [rowsFollowing, headersFollowing] = await db.executeQuery(`
+SELECT Count(f.following_name) 
+FROM follows f
+JOIN community_subs cs ON f.following_name = cs.account_name 
+WHERE 
+f.follower_name = '${username}' AND
+cs.community_name = 'hive-173115';
+          `);
+
+    // Get followers? information
+    const [rowsFollowers, headersFollowers] = await db.executeQuery(`
+SELECT Count(f.follower_name) 
+FROM follows f
+JOIN community_subs cs ON f.follower_name = cs.account_name 
+WHERE 
+f.following_name = '${username}' AND
+cs.community_name = 'hive-173115';
+      `);
+
     return NextResponse.json(
       {
         success: true,
-        data: rows[0],
+        data: {
+          ...rows[0],
+          community_followers: rowsFollowers[0].count,
+          community_followings: rowsFollowing[0].count,
+        },
         headers: headers
       },
       { status: 200 }
@@ -60,10 +84,10 @@ export async function GET(
   } catch (error) {
     console.error('Profile fetch error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch account data' 
-      }, 
+      {
+        success: false,
+        error: 'Failed to fetch account data'
+      },
       { status: 500 }
     );
   }

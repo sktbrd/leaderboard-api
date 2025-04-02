@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     };
 
     // Log the vote operation to server terminal
-    console.log('Vote operation:', JSON.stringify(voteOp, null, 2));
+    // console.log('Vote operation:', JSON.stringify(voteOp, null, 2));
 
     // Deserialize the posting key
     const key = PrivateKey.from(body.posting_key);

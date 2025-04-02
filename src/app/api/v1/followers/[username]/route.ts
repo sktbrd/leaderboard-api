@@ -13,7 +13,14 @@ export async function GET(
 
         // Get account information
         const [rows, headers] = await db.executeQuery(`
-        select follower_name from follows where following_name  = '${username}';
+SELECT
+cs.account_name, cs.community_name, 
+f.follower_name, f.following_name
+FROM follows f
+JOIN community_subs cs ON f.follower_name = cs.account_name 
+WHERE 
+f.following_name = '${username}' AND
+cs.community_name = 'hive-173115';
     `);
 
         if (!rows || rows.length === 0) {
@@ -29,6 +36,7 @@ export async function GET(
         return NextResponse.json(
             {
                 success: true,
+                total_count: rows.length,
                 data: rows,
                 headers: headers
             },

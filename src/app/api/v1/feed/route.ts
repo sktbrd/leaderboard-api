@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
+import Redis from 'ioredis';
 
+// Initialize Redis client
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 const db = new HAFSQL_Database();
 
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
@@ -12,9 +15,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
     const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
-    const offset = (page - 1) * limit;
+    const cacheKey = `feed:page:${page}:limit:${limit}`;
 
-    // Get total count for pagination
+    // Check Redis cache first
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      console.log("REDIS: cached data")
+      return NextResponse.json(JSON.parse(cachedData), { status: 200 });
+    }
+
+    // Fetch total count for pagination
     const [totalRows] = await db.executeQuery(`
       SELECT COUNT(*) as total
       FROM comments
@@ -23,8 +33,9 @@ export async function GET(request: Request) {
     `);
     
     const total = parseInt(totalRows[0].total);
+    const offset = (page - 1) * limit;
 
-    // Get paginated data
+    // Fetch paginated data from DB
     const [rows, headers] = await db.executeQuery(`
       SELECT 
         c.body, 
@@ -124,35 +135,35 @@ export async function GET(request: Request) {
       OFFSET ${offset};
     `);
 
-    // Calculate pagination metadata
+    // Pagination metadata
     const totalPages = Math.ceil(total / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        data: rows,
-        headers: headers,
-        pagination: {
-          total,
-          totalPages,
-          currentPage: page,
-          limit,
-          hasNextPage,
-          hasPrevPage,
-          nextPage: hasNextPage ? page + 1 : null,
-          prevPage: hasPrevPage ? page - 1 : null
-        }
-      }, 
-      { status: 200 }
-    );
+    const responseData = {
+      success: true,
+      data: rows,
+      headers: headers,
+      pagination: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null
+      }
+    };
+
+    // Store response in Redis for 5 minutes (300 seconds)
+    await redis.set(cacheKey, JSON.stringify(responseData), 'EX', 300);
+
+    return NextResponse.json(responseData, { status: 200 });
+
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch data' 
-      }, 
+      { success: false, error: 'Failed to fetch data' }, 
       { status: 500 }
     );
   }
