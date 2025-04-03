@@ -32,35 +32,42 @@ export async function POST(request: Request) {
   }
 
   try {
-    // const data = await request.json();
+    // Parse the JSON request data
+    const data = await request.json();
+    
+    if (DEBUG) console.log('JSON data received:', Object.keys(data));
 
-console.dir(request);
-
-    const formData = await request.formData();
-
-    if (DEBUG) console.log('FormData received:', formData);
-
-    const author = formData.get('author') as string;
-    const body = formData.get('body') as string;
-    const file = formData.get('file') as File;
+    const { author, body, media } = data;
 
     if (!author) return NextResponse.json({ error: 'Missing author' }, { status: 400 });
-    if (!body) return NextResponse.json({ error: 'Missing body' }, { status: 400 });
-    // if (files.length === 0) return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    if (!body && !media) return NextResponse.json({ error: 'Missing body' }, { status: 400 });
 
-    // for (const file of files) {
-      if (DEBUG) console.log('Uploading file to Pinata:', file.name);
+    // Handle media if provided
+    if (media) {
+      if (DEBUG) console.log('Processing media:', media.name, media.type);
 
-      const data = new FormData();
-      data.append('file', file);
+      // Create FormData for Pinata
+      const formData = new FormData();
+      
+      // Convert base64 to blob
+      const binaryString = atob(media.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: media.type });
+      
+      // Add file to FormData
+      formData.append('file', blob, media.name);
 
+      // Upload to Pinata
       const pinataResponse = await fetch(pinataUrl, {
         method: 'POST',
         headers: {
           'pinata_api_key': pinataApiKey,
           'pinata_secret_api_key': pinataSecretApiKey,
         },
-        body: data,
+        body: formData,
       });
 
       if (!pinataResponse.ok) {
@@ -71,16 +78,22 @@ console.dir(request);
 
       const pinataResult = await pinataResponse.json();
       ipfsHashes.push(pinataResult.IpfsHash);
-    // }
+      
+      if (DEBUG) console.log('Media uploaded to IPFS:', pinataResult.IpfsHash);
+    }
 
-    if (DEBUG) console.log('Files uploaded to IPFS:', ipfsHashes);
+    // Determine if the file is an image or video for proper metadata
+    const isVideo = media?.type.startsWith('video/');
+    const mediaType = isVideo ? 'video' : 'image';
 
-    const ipfsProviderUrl = 'https://ipfsprovider.pinata.cloud/ipfs/';
-    let ipfsImages = '\n';
+    // Create IPFS links for the content
+    const ipfsProviderUrl = 'https://gateway.pinata.cloud/ipfs/';
+    let ipfsImages = '';
     ipfsHashes.forEach((hash, index) => {
-      ipfsImages += `${index + 1}. ![](${ipfsProviderUrl}${hash})\n`;
+      ipfsImages += `\n![](${ipfsProviderUrl}${hash})`;
     });
 
+    // Get the latest snap container
     const [snapContainerRow] = await db.executeQuery(`
             SELECT permlink
             FROM comments
@@ -91,6 +104,8 @@ console.dir(request);
 
     if (DEBUG) console.log('Latest snap container:', snapContainerRow);
 
+    
+    // Create the post operation
     const commentOp: CommentOperation[1] = {
       parent_author: 'peak.snaps',
       parent_permlink: snapContainerRow[0].permlink,
@@ -100,7 +115,7 @@ console.dir(request);
       body: body + ipfsImages,
       json_metadata: JSON.stringify({
         app: "skatehiveapp/alpha",
-        image: ipfsImages,
+        [mediaType]: ipfsHashes.map(hash => `${ipfsProviderUrl}${hash}`),
         tags: ["snaps", "hive-173115", "skatehive", "skate"],
       }, null, 2)
     };
@@ -109,7 +124,6 @@ console.dir(request);
 
     const key = PrivateKey.from(postingKey);
     const result = await HiveClient.broadcast.comment(commentOp, key);
-    // const result = "Test";
     
     if (DEBUG) console.log('Hive broadcast result:', result);
 
@@ -127,6 +141,6 @@ console.dir(request);
 
   } catch (error) {
     console.error('Error:', error);
-    return NextResponse.json({ error }, { status: 500 });
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
