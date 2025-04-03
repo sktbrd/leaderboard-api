@@ -58,7 +58,7 @@ export async function GET(
       AND c.json_metadata @> '{"tags": ["hive-173115"]}'
       AND c.deleted = false;
           `);
-    console.dir(totalPostsRows);
+    // console.dir(totalPostsRows);
 
     // Get following? information
     const [rowsFollowing, headersFollowing] = await db.executeQuery(`
