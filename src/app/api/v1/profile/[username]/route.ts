@@ -49,6 +49,17 @@ export async function GET(
       );
     }
 
+    // Get total posts count
+    const [totalPostsRows] = await db.executeQuery(`
+      SELECT COUNT(*) AS total
+      FROM comments c
+      WHERE c.author = '${username}'
+      AND c.parent_permlink SIMILAR TO 'snap-container-%'
+      AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+      AND c.deleted = false;
+          `);
+    console.dir(totalPostsRows);
+
     // Get following? information
     const [rowsFollowing, headersFollowing] = await db.executeQuery(`
 SELECT Count(f.following_name) 
@@ -76,6 +87,7 @@ cs.community_name = 'hive-173115';
           ...rows[0],
           community_followers: rowsFollowers[0].count,
           community_followings: rowsFollowing[0].count,
+          community_totalposts: totalPostsRows[0].total,
         },
         headers: headers
       },

@@ -1,3 +1,6 @@
+/*
+  Trending Feed 
+ */
 import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
@@ -85,6 +88,7 @@ export async function GET(request: Request) {
       AND c.json_metadata @> '{"tags": ["hive-173115"]}'
       AND c.deleted = false
       GROUP BY 
+        c.id, 
         c.body, 
         c.author, 
         c.permlink, 
