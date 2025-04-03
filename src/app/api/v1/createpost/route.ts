@@ -13,6 +13,9 @@ function new_permlink() {
 export async function POST(request: Request) {
   if (DEBUG) console.log('Received POST request');
 
+  const postingKey = request.headers.get('Authorization')?.replace("Bearer ", "");
+  if (!postingKey) return NextResponse.json({ error: 'Missing posting key in headers' }, { status: 400 });
+
   const pinataApiKey = process.env.PINATA_API_KEY;
   const pinataSecretApiKey = process.env.PINATA_SECRET_API_KEY;
   const pinataUrl = process.env.PINATA_API_URL;
@@ -29,18 +32,18 @@ export async function POST(request: Request) {
   }
 
   try {
+    // const data = await request.json();
     const formData = await request.formData();
+
     if (DEBUG) console.log('FormData received:', formData);
 
-    const files = formData.getAll('file') as File[];
     const author = formData.get('author') as string;
     const body = formData.get('body') as string;
-    const postingKey = formData.get('posting_key') as string;
+    const files = formData.getAll('file') as File[];
 
     if (!author) return NextResponse.json({ error: 'Missing author' }, { status: 400 });
     if (!body) return NextResponse.json({ error: 'Missing body' }, { status: 400 });
-    if (!postingKey) return NextResponse.json({ error: 'Missing posting key' }, { status: 400 });
-    if (files.length === 0) return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    // if (files.length === 0) return NextResponse.json({ error: 'No files provided' }, { status: 400 });
 
     for (const file of files) {
       if (DEBUG) console.log('Uploading file to Pinata:', file.name);
@@ -69,6 +72,12 @@ export async function POST(request: Request) {
 
     if (DEBUG) console.log('Files uploaded to IPFS:', ipfsHashes);
 
+    const ipfsProviderUrl = 'https://ipfsprovider.pinata.cloud/ipfs/';
+    let ipfsImages = '\n';
+    ipfsHashes.forEach((hash, index) => {
+      ipfsImages += `${index + 1}. ![](${ipfsProviderUrl}${hash})\n`;
+    });
+
     const [snapContainerRow] = await db.executeQuery(`
             SELECT permlink
             FROM comments
@@ -85,10 +94,11 @@ export async function POST(request: Request) {
       author,
       permlink: new_permlink(),
       title: "",
-      body,
+      body: body + ipfsImages,
       json_metadata: JSON.stringify({
         app: "skatehiveapp/alpha",
-        ipfsHashes,
+        image: ipfsImages,
+        tags: ["snaps", "hive-173115", "skatehive", "skate"],
       }, null, 2)
     };
 
@@ -96,6 +106,7 @@ export async function POST(request: Request) {
 
     const key = PrivateKey.from(postingKey);
     const result = await HiveClient.broadcast.comment(commentOp, key);
+    // const result = "Test";
     
     if (DEBUG) console.log('Hive broadcast result:', result);
 
@@ -113,6 +124,6 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error }, { status: 500 });
   }
 }
