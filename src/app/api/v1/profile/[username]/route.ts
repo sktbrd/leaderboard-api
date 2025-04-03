@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
+import { HiveClient } from '@/lib/hive-client';
 
 const db = new HAFSQL_Database();
 
@@ -80,6 +81,13 @@ f.following_name = '${username}' AND
 cs.community_name = 'hive-173115';
       `);
 
+
+    let hiverc = await HiveClient.rc.getRCMana(username);
+    let hiveMana = await HiveClient.rc.getVPMana(username);
+    let vp_percent = `${hiveMana.percentage / 100}%`
+    let rc_percent = `${hiverc.percentage / 100}%`
+
+
     return NextResponse.json(
       {
         success: true,
@@ -88,6 +96,8 @@ cs.community_name = 'hive-173115';
           community_followers: rowsFollowers[0].count,
           community_followings: rowsFollowing[0].count,
           community_totalposts: totalPostsRows[0].total,
+          vp_percent,
+          rc_percent, 
         },
         headers: headers
       },
