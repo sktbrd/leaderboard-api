@@ -10,6 +10,7 @@ const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
 export async function GET(request: Request) {
+  console.log("Fetching TRENDING FEED data...");
   try {
     // Get pagination parameters from URL
     const { searchParams } = new URL(request.url);
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       WHERE parent_permlink SIMILAR TO 'snap-container-%'
       AND json_metadata @> '{"tags": ["hive-173115"]}'
     `);
-    
+
     const total = parseInt(totalRows[0].total);
 
     // Get paginated data
@@ -134,8 +135,8 @@ export async function GET(request: Request) {
     const hasPrevPage = page > 1;
 
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         data: rows,
         headers: headers,
         pagination: {
@@ -148,15 +149,20 @@ export async function GET(request: Request) {
           nextPage: hasNextPage ? page + 1 : null,
           prevPage: hasPrevPage ? page - 1 : null
         }
-      }, 
-      { status: 200 }
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        }
+      }
     );
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch data' 
-      }, 
+      {
+        success: false,
+        error: 'Failed to fetch data'
+      },
       { status: 500 }
     );
   }

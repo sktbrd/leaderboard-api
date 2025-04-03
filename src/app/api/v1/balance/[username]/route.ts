@@ -7,6 +7,7 @@ export async function GET(
   request: Request,
   { params }: { params: { username: string } }
 ) {
+  console.log("Fetching BALANCE data...");
   try {
     // Wait for params to be available
     const { username } = await params;

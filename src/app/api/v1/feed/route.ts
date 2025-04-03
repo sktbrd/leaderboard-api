@@ -10,6 +10,7 @@
   const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
   
   export async function GET(request: Request) {
+    console.log("Fetching MAIN FEED data...");
     try {
       // Get pagination parameters from URL
       const { searchParams } = new URL(request.url);
@@ -148,7 +149,10 @@
             prevPage: hasPrevPage ? page - 1 : null
           }
         }, 
-        { status: 200 }
+        { status: 200,
+          headers: {
+              'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+          } }
       );
     } catch (error) {
       return NextResponse.json(

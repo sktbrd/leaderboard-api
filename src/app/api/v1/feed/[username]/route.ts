@@ -13,6 +13,7 @@ export async function GET(
     request: Request,
     { params }: { params: { username: string } }
 ) {
+    console.log("Fetching USER FEED data...");
     try {
         const { username } = await params;
         // Get pagination parameters from URL
@@ -155,7 +156,12 @@ OFFSET ${offset};
                     prevPage: hasPrevPage ? page - 1 : null
                 }
             },
-            { status: 200 }
+            {
+                status: 200,
+                headers: {
+                    'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+                }
+            }
         );
     } catch (error) {
         return NextResponse.json(

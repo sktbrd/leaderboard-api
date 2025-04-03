@@ -7,6 +7,7 @@ export async function GET(
   request: Request,
   { params }: { params: { username: string } }
 ) {
+  console.log("Fetching BALANCEC REWARDS data...");
   try {
     const { username } = await params;
 

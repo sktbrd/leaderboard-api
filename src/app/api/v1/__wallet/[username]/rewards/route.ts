@@ -7,6 +7,7 @@ export async function GET(
   request: Request,
   { params }: { params: { username: string } }
 ) {
+  console.log("Fetching WALLET REWARDS data...");
   try {
     const { username } = await params;
 
@@ -86,7 +87,12 @@ export async function GET(
           pending_posts: pendingPosts
         }
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        }
+      }
     );
 
   } catch (error) {

@@ -1,148 +1,118 @@
 import { NextResponse } from 'next/server';
-import { PrivateKey } from '@hiveio/dhive';
+import { CommentOperation, PrivateKey } from '@hiveio/dhive';
 import { HiveClient } from '@/lib/hive-client';
 import { HAFSQL_Database } from '@/lib/database';
 
+const DEBUG = true;
 const db = new HAFSQL_Database();
 
-function new_permlink(context: string) {
-  return new Date()
-            .toISOString()
-            .replace(/[^a-zA-Z0-9]/g, "")
-            .toLowerCase();
+function new_permlink() {
+  return new Date().toISOString().replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 }
 
-// if (images.length > 0) {
-//   const uploadedImages = await Promise.all(images.map(async (image, index) => {
-//       const signature = await getFileSignature(image);
-//       try {
-//           const uploadUrl = await uploadImage(image, signature, index, setUploadProgress);
-//           return uploadUrl;
-//       } catch (error) {
-//           console.error('Error uploading image:', error);
-//           return null;
-//       }
-//   }));
-
-//   const validUrls = uploadedImages.filter(Boolean);
-
-//   if (validUrls.length > 0) {
-//       const imageMarkup = validUrls.map((url: string | null) => `![image](${url?.toString() || ''})`).join('\n');
-//       commentBody += `\n\n${imageMarkup}`;
-//   }
-// }
-
-// if (selectedGif) {
-//   commentBody += `\n\n![gif](${selectedGif.images.downsized_medium.url})`;
-// }
-
-// if (commentBody) {
-//   try {
-//       const commentResponse = await aioha.comment(pa, pp, permlink, '', commentBody, { app: 'mycommunity' });
-//       if (commentResponse.success) {
-//           postBodyRef.current!.value = '';
-//           setImages([]);
-//           setSelectedGif(null);
-
-//           const newComment: Partial<Comment> = {
-//               author: user, // Assuming `pa` is the current user's author name
-//               permlink: permlink,
-//               body: commentBody,
-//           };
-
-//           onNewComment(newComment); // Pass the actual Comment data
-//       }
-//   } finally {
-//       setIsLoading(false);
-//       setUploadProgress([]);
-//   }
-// }
-// }
-
-// import { getFileSignature, uploadImage } from '@/lib/hive/client-functions';
-
-
 export async function POST(request: Request) {
-  const client = HiveClient;
+  if (DEBUG) console.log('Received POST request');
+
+  const pinataApiKey = process.env.PINATA_API_KEY;
+  const pinataSecretApiKey = process.env.PINATA_SECRET_API_KEY;
+  const pinataUrl = process.env.PINATA_API_URL;
+  const ipfsHashes: string[] = [];
+
+  if (!pinataApiKey || !pinataSecretApiKey) {
+    if (DEBUG) console.error('Pinata API keys are missing');
+    return NextResponse.json({ error: 'Pinata API keys are missing' }, { status: 500 });
+  }
+
+  if (!pinataUrl) {
+    if (DEBUG) console.error('Pinata API URL is missing');
+    return NextResponse.json({ error: 'Pinata API URL is missing' }, { status: 500 });
+  }
 
   try {
-    // Parse the JSON body from the request
-    const body = await request.json();
+    const formData = await request.formData();
+    if (DEBUG) console.log('FormData received:', formData);
 
-    // Log the received data to server terminal
-    console.log('Received new post data:', JSON.stringify(body, null, 2));
+    const files = formData.getAll('file') as File[];
+    const author = formData.get('author') as string;
+    const body = formData.get('body') as string;
+    const postingKey = formData.get('posting_key') as string;
 
-    // Validate required fields
-    if (!body.author || !body.permlink || !body.body || !body.posting_key) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required fields'
+    if (!author) return NextResponse.json({ error: 'Missing author' }, { status: 400 });
+    if (!body) return NextResponse.json({ error: 'Missing body' }, { status: 400 });
+    if (!postingKey) return NextResponse.json({ error: 'Missing posting key' }, { status: 400 });
+    if (files.length === 0) return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+
+    for (const file of files) {
+      if (DEBUG) console.log('Uploading file to Pinata:', file.name);
+
+      const data = new FormData();
+      data.append('file', file);
+
+      const pinataResponse = await fetch(pinataUrl, {
+        method: 'POST',
+        headers: {
+          'pinata_api_key': pinataApiKey,
+          'pinata_secret_api_key': pinataSecretApiKey,
         },
-        { status: 400 }
-      );
+        body: data,
+      });
+
+      if (!pinataResponse.ok) {
+        const errorText = await pinataResponse.text();
+        console.error('Pinata upload error:', errorText);
+        return NextResponse.json({ error: 'Failed to upload to Pinata', details: errorText }, { status: pinataResponse.status });
+      }
+
+      const pinataResult = await pinataResponse.json();
+      ipfsHashes.push(pinataResult.IpfsHash);
     }
 
+    if (DEBUG) console.log('Files uploaded to IPFS:', ipfsHashes);
+
     const [snapContainerRow] = await db.executeQuery(`
-      SELECT parent_permlink as total
-      FROM comments
-      WHERE parent_permlink SIMILAR TO 'snap-container-%'
-      ORDER created DESC
-      LIMIT 0,1
-    `);
-    console.log(snapContainerRow)
+            SELECT permlink
+            FROM comments
+            WHERE author = 'peak.snaps'
+            ORDER BY created DESC
+            LIMIT 1
+        `);
 
-    // Create vote operation
-    const commentOp = {
-      parent_author: snapContainerRow[0].author || "",
-      parent_permlink: snapContainerRow[0].permlink || "",
-      author: body.author,
-      permlink: new_permlink(body.body) || "",
+    if (DEBUG) console.log('Latest snap container:', snapContainerRow);
+
+    const commentOp: CommentOperation[1] = {
+      parent_author: 'peak.snaps',
+      parent_permlink: snapContainerRow[0].permlink,
+      author,
+      permlink: new_permlink(),
       title: "",
-      body: body.body,
+      body,
       json_metadata: JSON.stringify({
-        app: "",
-        community: "",
-
+        app: "skatehiveapp/alpha",
+        ipfsHashes,
       }, null, 2)
     };
 
-    // Log the vote operation to server terminal
-    console.log('Vote operation:', JSON.stringify(commentOp, null, 2));
+    if (DEBUG) console.log('Posting to Hive:', commentOp);
 
-    // Deserialize the posting key
-    const key = PrivateKey.from(body.posting_key);
+    const key = PrivateKey.from(postingKey);
+    const result = await HiveClient.broadcast.comment(commentOp, key);
+    
+    if (DEBUG) console.log('Hive broadcast result:', result);
 
-    // Broadcast the comment/post
-    // console.dir(commentOp);
-    // const result = await client.broadcast.comment(commentOp, key);
-    const result = "Test";
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'New Post successful',
-        data: {
-          body: commentOp.body,
-          author: commentOp.author,
-          permlink: commentOp.permlink,
-          transaction: result
-        }
-      },
-      {
-        status: 200
+    return NextResponse.json({
+      success: true,
+      message: 'Upload and Post successful',
+      ipfsHashes,
+      hiveData: {
+        body: commentOp.body,
+        author: commentOp.author,
+        permlink: commentOp.permlink,
+        transaction: result
       }
-    );
+    }, { status: 200 });
 
   } catch (error) {
-    console.error('New Post processing error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to process new post'
-      },
-      { status: 500 }
-    );
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
