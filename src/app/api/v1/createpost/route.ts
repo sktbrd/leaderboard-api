@@ -32,7 +32,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Parse the JSON request data
     const data = await request.json();
     
     if (DEBUG) console.log('JSON data received:', Object.keys(data));
@@ -42,14 +41,10 @@ export async function POST(request: Request) {
     if (!author) return NextResponse.json({ error: 'Missing author' }, { status: 400 });
     if (!body && !media) return NextResponse.json({ error: 'Missing body' }, { status: 400 });
 
-    // Handle media if provided
     if (media) {
       if (DEBUG) console.log('Processing media:', media.name, media.type);
 
-      // Create FormData for Pinata
       const formData = new FormData();
-      
-      // Convert base64 to blob
       const binaryString = atob(media.data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -57,10 +52,8 @@ export async function POST(request: Request) {
       }
       const blob = new Blob([bytes], { type: media.type });
       
-      // Add file to FormData
       formData.append('file', blob, media.name);
 
-      // Upload to Pinata
       const pinataResponse = await fetch(pinataUrl, {
         method: 'POST',
         headers: {
@@ -82,37 +75,38 @@ export async function POST(request: Request) {
       if (DEBUG) console.log('Media uploaded to IPFS:', pinataResult.IpfsHash);
     }
 
-    // Determine if the file is an image or video for proper metadata
     const isVideo = media?.type.startsWith('video/');
     const mediaType = isVideo ? 'video' : 'image';
-
-    // Create IPFS links for the content
     const ipfsProviderUrl = 'https://gateway.pinata.cloud/ipfs/';
-    let ipfsImages = '';
-    ipfsHashes.forEach((hash, index) => {
-      ipfsImages += `\n![](${ipfsProviderUrl}${hash})`;
+    let mediaContent = '';
+
+    // Handle media embedding based on type
+    ipfsHashes.forEach((hash) => {
+      const mediaUrl = `${ipfsProviderUrl}${hash}`;
+      if (isVideo) {
+        mediaContent += `\n<iframe src="${mediaUrl}" frameborder="0" allowfullscreen></iframe>`;
+      } else {
+        mediaContent += `\n![](${mediaUrl})`;
+      }
     });
 
-    // Get the latest snap container
     const [snapContainerRow] = await db.executeQuery(`
-            SELECT permlink
-            FROM comments
-            WHERE author = 'peak.snaps'
-            ORDER BY created DESC
-            LIMIT 1
-        `);
+      SELECT permlink
+      FROM comments
+      WHERE author = 'peak.snaps'
+      ORDER BY created DESC
+      LIMIT 1
+    `);
 
     if (DEBUG) console.log('Latest snap container:', snapContainerRow);
 
-    
-    // Create the post operation
     const commentOp: CommentOperation[1] = {
       parent_author: 'peak.snaps',
       parent_permlink: snapContainerRow[0].permlink,
       author,
       permlink: new_permlink(),
       title: "",
-      body: body + ipfsImages,
+      body: body + mediaContent,
       json_metadata: JSON.stringify({
         app: "skatehiveapp/alpha",
         [mediaType]: ipfsHashes.map(hash => `${ipfsProviderUrl}${hash}`),
