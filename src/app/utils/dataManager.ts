@@ -1,20 +1,19 @@
-import { Asset, Client } from '@hiveio/dhive';
-import { supabase } from './supabaseClient'; // Use the existing Supabase client
-import { logWithColor, fetchAccountInfo, extractEthAddress } from './hiveHelpers';
+import { Asset } from '@hiveio/dhive';
+import { supabase } from './supabase/supabaseClient'; // Use the existing Supabase client
+import { logWithColor, fetchAccountInfo, extractEthAddressFromHiveAccount } from './hive/hiveUtils';
 import { DataBaseAuthor } from './types';
-import { convertVestingSharesToHivePower, calculateUserVoteValue } from './convertVeststoHP';
-import { fetchSubscribers } from './fetchSubscribers';
-import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethHelpers';
+import { convertVestingSharesToHivePower, calculateUserVoteValue } from './hive/hiveUtils';
+import { fetchSubscribers } from './hive/fetchSubscribers';
+import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereum/ethereumUtils';
+import { getLeaderboard } from './supabase/getLeaderboard';
+import { matchAndUpsertDonors } from './ethereum/giveth';
 
-const HiveClient = new Client('https://api.deathwing.me');
-export default HiveClient;
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     try {
-        const authorData: DataBaseAuthor[] = authors.map(({ hive_author }) => ({
+        const authorData: Partial<DataBaseAuthor>[] = authors.map(({ hive_author }) => ({
             hive_author,
         }));
 
@@ -53,55 +52,56 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
     }
 };
 
-export const getDatabaseData = async () => {
-    try {
-        const { data, error } = await supabase.from('leaderboard').select('*');
-        if (error) {
-            throw new Error(`Failed to fetch data: ${error.message}`);
-        }
-        return data;
-    } catch (error) {
-        logWithColor(`Error fetching data from the database: ${error}`, 'red');
-        throw error;
-    }
-};
 
-export const fetchAndStoreAllData = async (): Promise<void> => {
-    const startTime = Date.now(); // Start time
+export const fetchAndStorePartialData = async (): Promise<void> => {
+    const batchSize = 25;
     const community = 'hive-173115';
-    const batchSize = 25; // Reduce the batch size to process smaller batches
 
     try {
-        logWithColor('Starting to fetch and store all data...', 'blue');
-
-        // Fetch subscribers
         const subscribers = await fetchSubscribers(community);
-        logWithColor(`Fetched ${subscribers.length} subscribers.`, 'blue');
+        const databaseData = await getLeaderboard();
 
-        // Upsert authors in batches
-        const totalBatches = Math.ceil(subscribers.length / batchSize);
+        // Find the 100 oldest subscribers by `last_updated`
+        const lastUpdatedData = databaseData
+            .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
+            .slice(0, 100);
+
+        const validSubscribers = subscribers.filter(subscriber =>
+            lastUpdatedData.some(data => data.hive_author === subscriber.hive_author)
+        );
+
+        const totalBatches = Math.ceil(validSubscribers.length / batchSize);
+
         for (let i = 0; i < totalBatches; i++) {
-            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+            const batch = validSubscribers.slice(i * batchSize, (i + 1) * batchSize);
 
-            // Process the current batch concurrently
-            await Promise.all(batch.map(async (subscriber) => {
-                await fetchAndUpsertAccountData(subscriber);
-                await delay(200); // Increase delay to limit API calls to less than 50 per second
-            }));
+            await Promise.all(
+                batch.map(async (subscriber) => {
+                    try {
+                        await fetchAndUpsertAccountData(subscriber);
+                    } catch (error) {
+                        logWithColor(`Failed to process ${subscriber.hive_author}: ${error}`, 'red');
+                    }
+                })
+            );
 
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
-        logWithColor('Finished fetching and storing all data.', 'green');
+        // ✅ Add Giveth Donations Processing Here
+        logWithColor('Fetching and processing Giveth donations...', 'blue');
+        await matchAndUpsertDonors();
+
+        // ✅ Now Calculate Points
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
+
+        logWithColor('All data fetched and stored successfully.', 'green');
     } catch (error) {
-        logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
-        throw error; // Re-throw the error to ensure it is logged
-    } finally {
-        const endTime = Date.now(); // End time
-        const elapsedTime = (endTime - startTime) / 1000; // Calculate elapsed time in seconds
-        logWithColor(`Elapsed time: ${elapsedTime} seconds`, 'purple');
+        logWithColor(`Error during data processing: ${error}`, 'red');
     }
 };
+
 
 // Helper function to fetch and upsert account data for each subscriber
 export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }) => {
@@ -128,7 +128,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
         let gnars_balance = 0;
         let gnars_votes = 0;
         let skatehive_nft_balance = 0;
-        const eth_address = extractEthAddress(accountInfo.json_metadata);
+        const eth_address = extractEthAddressFromHiveAccount(accountInfo.json_metadata);
         if (eth_address === '0x0000000000000000000000000000000000000000') {
             logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
         }
@@ -150,8 +150,8 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
             gnars_votes: gnars_votes ? parseFloat(gnars_votes.toString()) : 0,
             skatehive_nft_balance: skatehive_nft_balance ? parseFloat(skatehive_nft_balance.toString()) : 0,
             max_voting_power_usd: parseFloat(voting_value.toFixed(4)), // Use the calculated voting value
-            last_updated: new Date().toISOString(),
-            last_post: accountInfo.last_post,
+            last_updated: new Date(),
+            last_post: new Date(accountInfo.last_post),
             post_count: accountInfo.post_count,
         };
 
@@ -161,3 +161,193 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
         logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
     }
 };
+
+// Function to calculate and update points for all users
+export const calculateAndUpsertPoints = async () => {
+    try {
+        // Fetch all data from the leaderboard
+        const leaderboardData = await getLeaderboard();
+
+        if (!leaderboardData || leaderboardData.length === 0) {
+            logWithColor('No data found in the leaderboard.', 'red');
+            return;
+        }
+
+        // Define multipliers and caps for points calculation
+        const POINT_MULTIPLIERS = {
+            hive_balance: 0.1,
+            hp_balance: 0.5,
+            gnars_votes: 30, // Changed from gnars_balance to gnars_votes
+            skatehive_nft_balance: 50,
+            witness_vote: 1000,
+            hbd_savings_balance: 0.2,
+            post_count: 0.1,
+            max_voting_power_usd: 1000,
+            max_inactivity_penalty: 100,
+            eth_wallet_penalty: -2000,
+            zero_value_penalties: {
+                hive_balance: -1000,
+                hp_balance: -5000,
+                gnars_votes: -300, // Changed from gnars_balance to gnars_votes
+                skatehive_nft_balance: -900,
+                hbd_savings_balance: -200,
+                post_count: -2000,
+            },
+        };
+
+        const CAPS = {
+            hive_balance: 1000,
+            hp_balance: 12000,
+            hbd_balance: 1000,
+            hbd_savings_balance: 1000,
+            post_count: 3000,
+        };
+
+        // Helper function to apply cap
+        const capValue = (value: number, cap: number) => Math.min(value, cap);
+
+        // Calculate points for each user
+        const updatedData = leaderboardData.map(user => {
+            const {
+                hive_balance = 0,
+                hp_balance = 0,
+                gnars_votes = 0, // Changed from gnars_balance to gnars_votes
+                skatehive_nft_balance = 0,
+                has_voted_in_witness = false,
+                // hbd_balance = 0,
+                hbd_savings_balance = 0,
+                post_count = 0,
+                max_voting_power_usd = 0, // Added max_voting_power_usd
+                eth_address = null, // Added eth_address check
+                last_post,
+                points: currentPoints = 0, // Fetch current points if available
+            } = user;
+
+            const donationUSD = user.giveth_donations_usd ?? 0;
+            const donationPoints = Math.min(donationUSD, 1000) * 5;
+
+            const cappedHiveBalance = capValue(hive_balance, CAPS.hive_balance);
+            const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
+            const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
+            const cappedPostCount = capValue(post_count, CAPS.post_count);
+
+            const daysSinceLastPost = last_post
+                ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
+                : POINT_MULTIPLIERS.max_inactivity_penalty;
+
+            const hasValidEthWallet =
+                eth_address && eth_address !== '0x0000000000000000000000000000000000000000';
+
+            // Modified to ensure that users whose hive_author starts with "donator" do not receive the wallet bonus.
+            const ethWalletBonus = (hasValidEthWallet && !user.hive_author.toLowerCase().startsWith('donator')) ? 5000 : 0;
+            const ethWalletPenalty = !hasValidEthWallet ? POINT_MULTIPLIERS.eth_wallet_penalty : 0; // Apply penalty if no wallet
+
+            const zeroValuePenalties = [
+                { value: hive_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hive_balance },
+                { value: hp_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hp_balance },
+                { value: gnars_votes, penalty: POINT_MULTIPLIERS.zero_value_penalties.gnars_votes }, // Changed from gnars_balance to gnars_votes
+                { value: skatehive_nft_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.skatehive_nft_balance },
+                { value: hbd_savings_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hbd_savings_balance },
+                { value: post_count, penalty: POINT_MULTIPLIERS.zero_value_penalties.post_count },
+            ].reduce((acc, { value, penalty }) => acc + (value === 0 ? penalty : 0), 0);
+
+            const points =
+                (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance) +
+                (cappedHpBalance * POINT_MULTIPLIERS.hp_balance) +
+                (gnars_votes * POINT_MULTIPLIERS.gnars_votes) + // Changed from gnars_balance to gnars_votes
+                (skatehive_nft_balance * POINT_MULTIPLIERS.skatehive_nft_balance) +
+                (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : 0) +
+                (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
+                (cappedPostCount * POINT_MULTIPLIERS.post_count) +
+                (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) +
+                ethWalletBonus +
+                ethWalletPenalty -
+                Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
+                donationPoints + // <-- added donation points
+                zeroValuePenalties;
+
+            return {
+                ...user,
+                points: Math.max(points, 0), // Ensure points are non-negative
+                hasUpdatedPoints: currentPoints !== Math.max(points, 0), // Track if points have changed
+            };
+        });
+
+        // Update points only for users with changed points
+        const usersToUpdate = updatedData.filter(user => user.hasUpdatedPoints);
+        if (usersToUpdate.length === 0) {
+            logWithColor('No changes in points detected. Skipping updates.', 'yellow');
+            return;
+        }
+
+        const { error } = await supabase
+            .from('leaderboard')
+            .upsert(
+                usersToUpdate.map(({ hive_author, points }) => ({ hive_author, points })),
+                { onConflict: 'hive_author' }
+            );
+
+        if (error) {
+            logWithColor(`Failed to batch update points: ${error.message}`, 'red');
+        } else {
+            logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+        }
+    } catch (error) {
+        logWithColor(`Error in calculateAndUpsertPoints: ${(error as Error).message}`, 'red');
+    }
+};
+
+export const fetchAndStoreAllData = async (): Promise<void> => {
+    const batchSize = 25;
+    const community = 'hive-173115';
+
+    try {
+        logWithColor('Starting to fetch and store all data...', 'blue');
+
+        const subscribers = await fetchSubscribers(community);
+        // dummy xvlad subscriber 
+        // const subscribers = [{ hive_author: 'xvlad' }];
+
+        logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
+
+        // Step 1: Upsert authors into the database
+        await upsertAuthors(subscribers);
+
+        // Step 2: Process each batch of subscribers
+        const totalBatches = Math.ceil(subscribers.length / batchSize);
+
+        for (let i = 0; i < totalBatches; i++) {
+            const batch = subscribers.slice(i * batchSize, (i + 1) * batchSize);
+
+            await Promise.all(
+                batch.map(async (subscriber) => {
+                    try {
+                        await fetchAndUpsertAccountData(subscriber);
+                    } catch (error) {
+                        logWithColor(`Failed to process subscriber ${subscriber.hive_author}: ${error}`, 'red');
+                    }
+                })
+            );
+
+            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
+        }
+
+        // ✅ Add Giveth Donations Processing Here
+        logWithColor('Fetching and processing Giveth donations...', 'blue');
+        await matchAndUpsertDonors();
+
+        // Step 3: Calculate and upsert points
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
+
+        logWithColor('All data fetched, stored, and points calculated successfully.', 'green');
+    } catch (error) {
+        logWithColor(`Error in fetchAndStoreAllData: ${error}`, 'red');
+        throw error;
+    }
+};
+
+
+
+
+
