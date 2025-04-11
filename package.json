@@ -1,6 +1,6 @@
 {
-  "name": "skatehive-leaderboard",
-  "version": "0.1.0",
+  "name": "skatehive-app-api",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -16,6 +16,7 @@
     "ethers": "^6.13.5",
     "graphql-request": "^7.1.2",
     "next": "15.1.5",
+    "pg": "^8.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "viem": "^2.22.9"
