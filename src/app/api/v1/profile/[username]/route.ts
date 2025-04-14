@@ -84,9 +84,8 @@ cs.community_name = 'hive-173115';
 
     let hiverc = await HiveClient.rc.getRCMana(username);
     let hiveMana = await HiveClient.rc.getVPMana(username);
-    let vp_percent = `${hiveMana.percentage / 100}%`
-    let rc_percent = `${hiverc.percentage / 100}%`
-
+    let vp_percent = `${hiveMana.percentage / 100}`
+    let rc_percent = `${hiverc.percentage / 100}`
 
     return NextResponse.json(
       {
