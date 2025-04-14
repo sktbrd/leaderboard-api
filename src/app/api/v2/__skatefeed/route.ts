@@ -7,12 +7,12 @@ const parent_author = process.env.parent_author || "xvlad"
 const parent_permlink = process.env.parent_permlink || "nxvsjarvmp"
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 100;
-const MY_COMMUNITY_CATEGORY = process.env.MY_COMMUNITY_CATEGORY || 'hive-173115';
 
 export async function GET(request: Request) {
     try {
         // Get pagination parameters from URL
         const { searchParams } = new URL(request.url);
+        const MY_COMMUNITY_CATEGORY = searchParams.get('community_code') || 'hive-173115';
         const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
         const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
         const offset = (page - 1) * limit;
