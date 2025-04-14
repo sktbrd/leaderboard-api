@@ -42,7 +42,10 @@ export async function GET(
         data: rows[0],
         headers: headers
       },
-      { status: 200 }
+      { status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        } }
     );
   } catch (error) {
     console.error('Wallet fetch error:', error);

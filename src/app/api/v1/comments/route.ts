@@ -105,7 +105,10 @@ export async function GET(request: Request) {
         data: rows,
         headers: headers
       },
-      { status: 200 }
+      { status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        } }
     );
   } catch (error) {
     console.error('Comments fetch error:', error);
