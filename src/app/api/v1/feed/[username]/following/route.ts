@@ -15,7 +15,9 @@ export async function GET(
 ) {
     console.log("Fetching USER FOLLOWING FEED data...");
     try {
-        const { username } = await params;
+        let { username } = await params;
+        if (username == "SPECTATOR") username = "steemskate";
+
         // Get pagination parameters from URL
         const { searchParams } = new URL(request.url);
         const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
