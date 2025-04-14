@@ -35,8 +35,10 @@ export async function GET(
         a.reward_vests_balance_hp,
         a.vesting_withdraw_rate,
         a.proxy,
-        a.last_update
+        a.last_update,
+        b.hp_equivalent
       FROM accounts a
+      LEFT JOIN balances b ON a.name = b.account_name
       WHERE a.name = '${username}'
     `);
 
