@@ -1,15 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { username: string } }
-) {
+): Promise<NextResponse> {
   console.log("Fetching BALANCEC REWARDS data...");
   try {
-    const { username } = await params;
+    const { username } = params;
 
     // Get pending rewards information with detailed payout calculations
     const [rows, headers] = await db.executeQuery(`

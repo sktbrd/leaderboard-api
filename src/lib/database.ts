@@ -89,17 +89,15 @@ export class HAFSQL_Database {
     return !SKIP_TABLES.includes(tableName);
   }
 
-  async executeQuery(query: string, fetchSize: number = 100): Promise<[any[], string[]]> {
+  async executeQuery(query: string): Promise<[Record<string, unknown>[], string[]]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query({
         text: query,
-        // rowMode: 'array',
-        // rows: fetchSize
       });
 
-      const header = result.fields.map(field => field.name);
-      return [result.rows, header];
+      const header = result.fields.map((field: { name: string }) => field.name);
+      return [result.rows as Record<string, unknown>[], header];
     } catch (error) {
       console.error('Query execution error:', (error as Error).message);
       return [[], []];

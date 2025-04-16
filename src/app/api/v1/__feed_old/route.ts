@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       AND c.parent_permlink = '${parent_permlink}'
     `);
     
-    const total = parseInt(totalRows[0].total);
+    const total = parseInt(totalRows[0].total as any);
 
     // Get paginated data
     const [rows, headers] = await db.executeQuery(`
