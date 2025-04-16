@@ -35,8 +35,10 @@ export async function GET(
         a.reward_vests_balance_hp,
         a.vesting_withdraw_rate,
         a.proxy,
-        a.last_update
+        a.last_update,
+        b.hp_equivalent
       FROM accounts a
+      LEFT JOIN balances b ON a.name = b.account_name
       WHERE a.name = '${username}'
     `);
 
@@ -84,9 +86,8 @@ cs.community_name = 'hive-173115';
 
     let hiverc = await HiveClient.rc.getRCMana(username);
     let hiveMana = await HiveClient.rc.getVPMana(username);
-    let vp_percent = `${hiveMana.percentage / 100}%`
-    let rc_percent = `${hiverc.percentage / 100}%`
-
+    let vp_percent = `${hiveMana.percentage / 100}`
+    let rc_percent = `${hiverc.percentage / 100}`
 
     return NextResponse.json(
       {

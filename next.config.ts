@@ -14,7 +14,15 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  /* config options here */
+
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: "/api/v1/:path*", // Rewrite target
+      },
+    ];
+  },
 };
 
 export default nextConfig;

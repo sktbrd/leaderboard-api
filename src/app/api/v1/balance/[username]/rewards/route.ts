@@ -87,7 +87,10 @@ export async function GET(
           pending_posts: pendingPosts
         }
       },
-      { status: 200 }
+      { status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        } }
     );
 
   } catch (error) {
