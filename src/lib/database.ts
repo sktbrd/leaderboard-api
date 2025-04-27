@@ -88,7 +88,6 @@ export class HAFSQL_Database {
   private isTableAvailable(tableName: string): boolean {
     return !SKIP_TABLES.includes(tableName);
   }
-
   
   async executeQuery(query: string, // fetchSize: number = 100
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
