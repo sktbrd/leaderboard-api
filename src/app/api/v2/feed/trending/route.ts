@@ -1,40 +1,36 @@
+/*
+  Trending Feed 
+ */
 import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
-const parent_author = process.env.parent_author || "xvlad"
-const parent_permlink = process.env.parent_permlink || "nxvsjarvmp"
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
-const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 100;
-const MY_COMMUNITY_CATEGORY = process.env.MY_COMMUNITY_CATEGORY || 'hive-173115';
+const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
 export async function GET(request: Request) {
-    try {
-        // Get pagination parameters from URL
-        const { searchParams } = new URL(request.url);
-        const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-        const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
-        const offset = (page - 1) * limit;
+  console.log("Fetching TRENDING FEED data...");
+  try {
+    // Get pagination parameters from URL
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
+    const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
+    const offset = (page - 1) * limit;
 
-        // Get total count combining both sources
-        const [totalRows] = await db.executeQuery(`
+    // Get total count for pagination
+    const [totalRows] = await db.executeQuery(`
       SELECT COUNT(*) as total
-  FROM comments c
-  WHERE (
-    c.category = '${MY_COMMUNITY_CATEGORY}'
-    OR 
-    (c.parent_author = '${parent_author}' AND c.parent_permlink = '${parent_permlink}')
-  )
-  AND c.deleted = false
+      FROM comments
+      WHERE parent_permlink SIMILAR TO 'snap-container-%'
+      AND json_metadata @> '{"tags": ["hive-173115"]}'
     `);
 
-        const total = parseInt(totalRows[0].total);
+    const total = parseInt(totalRows[0].total);
 
-        // Get paginated data from both sources
-        const [rows, headers] = await db.executeQuery(`
+    // Get paginated data
+    const [rows, headers] = await db.executeQuery(`
       SELECT 
-        c.title, 
         c.body, 
         c.author, 
         c.permlink, 
@@ -64,7 +60,7 @@ export async function GET(request: Request) {
         c.percent_hbd, 
         c.allow_votes, 
         c.allow_curation_rewards, 
-        c.deleted, 
+        c.deleted,
         a.json_metadata AS user_json_metadata, 
         a.reputation, 
         a.followers, 
@@ -89,14 +85,11 @@ export async function GET(request: Request) {
       LEFT JOIN operation_effective_comment_vote_view v 
         ON c.author = v.author 
         AND c.permlink = v.permlink
-      WHERE (
-        (c.category = '${MY_COMMUNITY_CATEGORY}' AND c.parent_author = '')
-        OR 
-        (c.parent_author = '${parent_author}' AND c.parent_permlink = '${parent_permlink}')
-      )
+      WHERE c.parent_permlink SIMILAR TO 'snap-container-%'
+      AND c.json_metadata @> '{"tags": ["hive-173115"]}'
       AND c.deleted = false
       GROUP BY 
-        c.title, 
+        c.id, 
         c.body, 
         c.author, 
         c.permlink, 
@@ -131,37 +124,47 @@ export async function GET(request: Request) {
         a.reputation, 
         a.followers, 
         a.followings
-      ORDER BY c.created DESC
+      ORDER BY c.pending_payout_value DESC
       LIMIT ${limit}
-      OFFSET ${offset}
+      OFFSET ${offset};
     `);
 
-        return NextResponse.json(
-            {
-                success: true,
-                data: rows,
-                headers: headers,
-                pagination: {
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                    currentPage: page,
-                    limit,
-                    hasNextPage: page < Math.ceil(total / limit),
-                    hasPrevPage: page > 1,
-                    nextPage: page < Math.ceil(total / limit) ? page + 1 : null,
-                    prevPage: page > 1 ? page - 1 : null
-                }
-            },
-            { status: 200 }
-        );
-    } catch (error) {
-        console.error('Skatefeed fetch error:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'Failed to fetch skatefeed data'
-            },
-            { status: 500 }
-        );
-    }
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: rows,
+        headers: headers,
+        pagination: {
+          total,
+          totalPages,
+          currentPage: page,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null
+        }
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        }
+      }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: 'Failed to fetch data',
+        error
+      },
+      { status: 500 }
+    );
+  }
 }

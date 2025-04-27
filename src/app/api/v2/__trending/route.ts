@@ -155,7 +155,8 @@ export async function GET(request: Request) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch data' 
+        code: 'Failed to fetch data',
+        error
       }, 
       { status: 500 }
     );

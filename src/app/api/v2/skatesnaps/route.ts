@@ -10,7 +10,7 @@
   const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
   
   export async function GET(request: Request) {
-    console.log("Fetching MAIN FEED data...");
+    console.log("Fetching latest Skate Snaps FEED data...");
     try {
       // Get pagination parameters from URL
       const { searchParams } = new URL(request.url);
@@ -22,7 +22,10 @@
       const [totalRows] = await db.executeQuery(`
         SELECT COUNT(*) as total
         FROM comments
-        WHERE parent_permlink SIMILAR TO 'snap-container-%'
+        WHERE (
+      c.parent_permlink SIMILAR TO 'snap-container-%'
+      OR c.parent_permlink = 'nxvsjarvmp'
+  )
         AND json_metadata @> '{"tags": ["hive-173115"]}'
       `);
       
@@ -85,7 +88,10 @@
         LEFT JOIN operation_effective_comment_vote_view v 
           ON c.author = v.author 
           AND c.permlink = v.permlink
-        WHERE c.parent_permlink SIMILAR TO 'snap-container-%'
+        WHERE (
+      c.parent_permlink SIMILAR TO 'snap-container-%'
+      OR c.parent_permlink = 'nxvsjarvmp'
+  )
         AND c.json_metadata @> '{"tags": ["hive-173115"]}'
         AND c.deleted = false
         GROUP BY 

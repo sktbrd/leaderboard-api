@@ -1,5 +1,6 @@
-import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 import { NextResponse } from 'next/server';
+// import { fetchAndStoreAllData } from '@/app/utils/dataManager';
+import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 
 export async function GET() {
     console.log("Fetching LEADERBOARD data...");
