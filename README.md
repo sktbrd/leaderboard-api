@@ -1,8 +1,8 @@
-# 🛹 Skatehive Leaderboard
+# 🛹 Skatehive Leaderboard 
 
 Welcome to the Skatehive Leaderboard project! This application is designed to create a leaderboard for the Skatehive community, integrating data from Hive and Ethereum blockchains, and Supabase database.
 
-## 📁 Project Structure
+## 📁 Project Structure.
 
 ```
 .
