@@ -1,4 +1,4 @@
-// middleware.ts
+// middleware.ts file
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { authenticateToken } from './app/api/v1/auth';
