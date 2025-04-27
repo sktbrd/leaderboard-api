@@ -1,29 +1,35 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  // request: Request,
-  //   { params }: { params: { username: string } }
+  request: NextRequest,
 ) {
+  console.log("Fetching BALANCE data...");
   try {
-    // Wait for params to be available
-    // const { username } = await params;
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get('username');
 
     // Get user's balance information
     const [rows, headers] = await db.executeQuery(`
-      SELECT "timestamp", "open", high, low, "close", base_vol, quote_vol 
-      FROM market_bucket_5m_table
-      ORDER BY "timestamp" DESC
-      LIMIT 1;
+      SELECT 
+        account_name,
+        hive,
+        hbd,
+        vests,
+        hp_equivalent,
+        hive_savings,
+        hbd_savings
+      FROM balances
+      WHERE account_name = '${username}'
     `);
 
     if (!rows || rows.length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Market Bucket 5m not found'
+          error: 'Account not found'
         },
         { status: 404 }
       );
@@ -35,12 +41,7 @@ export async function GET(
         data: rows[0],
         headers: headers
       },
-      {
-        status: 200,
-        headers: {
-          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
-        }
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error('Wallet fetch error:', error);

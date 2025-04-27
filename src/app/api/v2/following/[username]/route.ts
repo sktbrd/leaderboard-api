@@ -6,11 +6,11 @@ const db = new HAFSQL_Database();
 export async function GET(
     request: NextRequest,
 ) {
+    console.log("Fetching following data...");
     try {
-        // Wait for params to be available
-        const pathname = request.url; // e.g., "/api/v1/proffollowing/vaipraonde"
-        const parts = pathname.split('/');
-        const username = parts[parts.length - 1];
+        const { searchParams } = new URL(request.url);
+        const username = searchParams.get('username');
+
 
         // Get account information
         const [rows, headers] = await db.executeQuery(`
