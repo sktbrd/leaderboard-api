@@ -4,23 +4,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
+const db = new HAFSQL_Database();
+
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
-
-const db = new HAFSQL_Database();
 
 export async function GET(
     request: NextRequest,
 ) {
-    console.log("Fetching BALANCE data...");
+    console.log("Fetching USER FOLLOWING FEED data...");
     try {
-        // Wait for params to be available
-        const searchParams = request.nextUrl.searchParams;
-        
-        const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
-        const parts = pathname.split('/');
-        const username = parts[parts.length - 1];
-
+        const { searchParams } = new URL(request.url);
+        const username = searchParams.get('username');
         // Get pagination parameters from URL
         // const { searchParams } = new URL(request.url);
         const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
