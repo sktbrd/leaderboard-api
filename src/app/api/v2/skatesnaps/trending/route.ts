@@ -1,5 +1,5 @@
 /*
-  Main Feed 
+  Trending Feed 
  */
   import { NextResponse } from 'next/server';
   import { HAFSQL_Database } from '@/lib/database';
@@ -10,26 +10,30 @@
   const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
   
   export async function GET(request: Request) {
-    console.log("Fetching MAIN FEED data...");
-    try {
-      // Get pagination parameters from URL
-      const { searchParams } = new URL(request.url);
-      const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-      const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
-      const offset = (page - 1) * limit;
+      console.log("Fetching trending SKATE SNAPS data...");
+      try {
+          // Get pagination parameters from URL
+          const { searchParams } = new URL(request.url);
+          const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
+          const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
+          const offset = (page - 1) * limit;
   
-      // Get total count for pagination
-      const [totalRows] = await db.executeQuery(`
+          // Get total count for pagination
+          const [totalRows] = await db.executeQuery(`
         SELECT COUNT(*) as total
-        FROM comments
-        WHERE parent_permlink SIMILAR TO 'snap-container-%'
-        AND json_metadata @> '{"tags": ["hive-173115"]}'
+  FROM comments c
+  WHERE (
+      c.parent_permlink SIMILAR TO 'snap-container-%'
+      OR c.parent_permlink = 'nxvsjarvmp'
+  )
+  AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+  AND c.deleted = false
       `);
-      
-      const total = parseInt(totalRows[0].total);
   
-      // Get paginated data
-      const [rows, headers] = await db.executeQuery(`
+          const total = parseInt(totalRows[0].total);
+  
+          // Get paginated data
+          const [rows, headers] = await db.executeQuery(`
         SELECT 
           c.body, 
           c.author, 
@@ -85,10 +89,14 @@
         LEFT JOIN operation_effective_comment_vote_view v 
           ON c.author = v.author 
           AND c.permlink = v.permlink
-        WHERE c.parent_permlink SIMILAR TO 'snap-container-%'
-        AND c.json_metadata @> '{"tags": ["hive-173115"]}'
-        AND c.deleted = false
+        WHERE (
+              c.parent_permlink SIMILAR TO 'snap-container-%'
+              OR c.parent_permlink = 'nxvsjarvmp'
+          )
+          AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+          AND c.deleted = false
         GROUP BY 
+          c.id, 
           c.body, 
           c.author, 
           c.permlink, 
@@ -123,45 +131,48 @@
           a.reputation, 
           a.followers, 
           a.followings
-        ORDER BY c.created DESC
+        ORDER BY c.pending_payout_value, c.created DESC
         LIMIT ${limit}
-        OFFSET ${offset};`
-      );
+        OFFSET ${offset};
+      `);
   
-      // Calculate pagination metadata
-      const totalPages = Math.ceil(total / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
+          // Calculate pagination metadata
+          const totalPages = Math.ceil(total / limit);
+          const hasNextPage = page < totalPages;
+          const hasPrevPage = page > 1;
   
-      return NextResponse.json(
-        { 
-          success: true, 
-          data: rows,
-          headers: headers,
-          pagination: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNextPage,
-            hasPrevPage,
-            nextPage: hasNextPage ? page + 1 : null,
-            prevPage: hasPrevPage ? page - 1 : null
-          }
-        }, 
-        { status: 200,
-          headers: {
-              'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
-          } }
-      );
-    } catch (error) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          code: 'Failed to fetch data',
-          error
-        }, 
-        { status: 500 }
-      );
-    }
+          return NextResponse.json(
+              {
+                  success: true,
+                  data: rows,
+                  headers: headers,
+                  pagination: {
+                      total,
+                      totalPages,
+                      currentPage: page,
+                      limit,
+                      hasNextPage,
+                      hasPrevPage,
+                      nextPage: hasNextPage ? page + 1 : null,
+                      prevPage: hasPrevPage ? page - 1 : null
+                  }
+              },
+              {
+                  status: 200,
+                  headers: {
+                      'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+                  }
+              }
+          );
+      } catch (error) {
+          return NextResponse.json(
+              {
+                  success: false,
+                  code: 'Failed to fetch skatesnaps data',
+                  error,
+              },
+              { status: 500 }
+          );
+      }
   }
+  

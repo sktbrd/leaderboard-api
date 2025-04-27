@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-    request: Request,
-    { params }: { params: { username: string } }
+    request: NextRequest,
 ) {
+    console.log("Fetching following data...");
     try {
-        // Wait for params to be available
-        const { username } = await params;
+        const { searchParams } = new URL(request.url);
+        const username = searchParams.get('username');
+
 
         // Get account information
         const [rows, headers] = await db.executeQuery(`

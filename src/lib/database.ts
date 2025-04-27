@@ -1,11 +1,11 @@
 import { Pool, PoolConfig } from 'pg';
 
-interface DBConfig {
-  user: string;
-  password: string;
-  server: string;
-  database: string;
-}
+// interface DBConfig {
+//   user: string;
+//   password: string;
+//   server: string;
+//   database: string;
+// }
 
 interface DatabaseSchema {
   [key: string]: string;
@@ -89,7 +89,10 @@ export class HAFSQL_Database {
     return !SKIP_TABLES.includes(tableName);
   }
 
-  async executeQuery(query: string, fetchSize: number = 100): Promise<[any[], string[]]> {
+  
+  async executeQuery(query: string, // fetchSize: number = 100
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<[any[], string[]]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query({
@@ -98,7 +101,8 @@ export class HAFSQL_Database {
         // rows: fetchSize
       });
 
-      const header = result.fields.map(field => field.name);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const header = result.fields.map((field: { name: any; }) => field.name);
       return [result.rows, header];
     } catch (error) {
       console.error('Query execution error:', (error as Error).message);
@@ -126,11 +130,11 @@ export class HAFSQL_Database {
 }
 
 // You'll need to define these constants
-const SQL_QUERIES = {
-  select_tables: 'your_tables_query_here',
-  select_views: 'your_views_query_here',
-  create_tables_schema: 'your_tables_schema_query_here',
-  create_views_schema: 'your_views_schema_query_here'
-};
+//   select_tables: 'your_tables_query_here',
+//   select_views: 'your_views_query_here',
+//   create_tables_schema: 'your_tables_schema_query_here',
+//   create_views_schema: 'your_views_schema_query_here'
+// };
+
 
 const SKIP_TABLES: string[] = []; // Add tables to skip here

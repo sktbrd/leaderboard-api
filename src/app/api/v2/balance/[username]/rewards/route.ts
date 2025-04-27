@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
-  { params }: { params: { username: string } }
+    request: NextRequest,
 ) {
   console.log("Fetching BALANCEC REWARDS data...");
   try {
-    const { username } = await params;
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get('username');
 
     // Get pending rewards information with detailed payout calculations
-    const [rows, headers] = await db.executeQuery(`
+    const [rows] = await db.executeQuery(`
       SELECT 
         SUM(CAST(pending_payout_value AS DOUBLE PRECISION)) as total_pending_payout,
         COALESCE(SUM(

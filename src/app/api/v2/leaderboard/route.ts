@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDatabaseData } from '@/app/utils/dataManager';
+// import { fetchAndStoreAllData } from '@/app/utils/dataManager';
+import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 
 export async function GET() {
     console.log("Fetching LEADERBOARD data...");
     try {
-        const data = await getDatabaseData();
+        const data = await getLeaderboard();
         return NextResponse.json(data, {
             headers: {
                 'Cache-Control': 's-maxage=500, stale-while-revalidate=300'

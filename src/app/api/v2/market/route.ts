@@ -4,7 +4,7 @@ import { HAFSQL_Database } from '@/lib/database';
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
+  // request: Request,
   //   { params }: { params: { username: string } }
 ) {
   try {

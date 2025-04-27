@@ -1,16 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
-  { params }: { params: { username: string } }
+  request: NextRequest,
 ) {
-  console.log("Fetching BALANCEC REWARDS data...");
-  try {
-    const { username } = await params;
+  const searchParams = request.nextUrl.searchParams;
+  const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
+  const parts = pathname.split('/');
+  const username = parts[parts.length - 1];
 
+  try {
     // Get pending rewards information with detailed payout calculations
     const [rows, headers] = await db.executeQuery(`
       SELECT 
@@ -73,6 +74,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: true,
+        headers,
         data: {
           summary: {
             total_pending_payout: Number(rows[0].total_pending_payout).toFixed(3),
@@ -95,7 +97,8 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch rewards data'
+        code: 'Failed to fetch rewards data',
+        error,
       },
       { status: 500 }
     );
