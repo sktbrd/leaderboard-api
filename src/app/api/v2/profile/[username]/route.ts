@@ -5,14 +5,12 @@ import { HiveClient } from '@/lib/hive-client';
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: NextRequest,
+    request: NextRequest,
 ) {
+  console.log("Fetching profile data...");
   try {
-    // Wait for params to be available
-    // const { searchParams } = new URL(request.url);
-    const pathname = request.url; // e.g., "/api/v1/profile/vaipraonde"
-    const parts = pathname.split('/');
-    const username = parts[parts.length - 1];
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get('username') || "SPECTATOR";
 
     // Get account information
     const [rows, headers] = await db.executeQuery(`
@@ -37,10 +35,8 @@ export async function GET(
         a.reward_vests_balance_hp,
         a.vesting_withdraw_rate,
         a.proxy,
-        a.last_update,
-        b.hp_equivalent
+        a.last_update
       FROM accounts a
-      LEFT JOIN balances b ON a.name = b.account_name
       WHERE a.name = '${username}'
     `);
 
@@ -86,13 +82,10 @@ cs.community_name = 'hive-173115';
       `);
 
 
-
-    const hiverc = await HiveClient.rc.getRCMana(username)
-    const hiveMana = await HiveClient.rc.getVPMana(username)
-
-    const vp_percent = `${(hiveMana.percentage ?? 0) / 100}`
-    const rc_percent = `${(hiverc.percentage ?? 0) / 100}`
-
+    const hiverc = await HiveClient.rc.getRCMana(username);
+    const hiveMana = await HiveClient.rc.getVPMana(username);
+    const vp_percent = `${hiveMana.percentage / 100}%`
+    const rc_percent = `${hiverc.percentage / 100}%`
 
 
     return NextResponse.json(
@@ -104,7 +97,7 @@ cs.community_name = 'hive-173115';
           community_followings: rowsFollowing[0].count,
           community_totalposts: totalPostsRows[0].total,
           vp_percent,
-          rc_percent,
+          rc_percent, 
         },
         headers: headers
       },

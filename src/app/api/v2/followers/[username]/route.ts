@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/database';
 
 const db = new HAFSQL_Database();
-
 export async function GET(
     request: NextRequest,
 ) {
-    try {
-        // Wait for params to be available
-        const pathname = request.url; // e.g., "/api/v1/proffollowing/vaipraonde"
-        const parts = pathname.split('/');
-        const username = parts[parts.length - 1];
+  console.log("Fetching folowers data...");
+  try {
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get('username');
+// export async function GET(
+//     request: Request,
+//     { params }: { params: { username: string } }
+// ) {
+//     try {
+//         // Wait for params to be available
+//         const { username } = await params;
 
         // Get account information
         const [rows, headers] = await db.executeQuery(`
@@ -18,9 +23,9 @@ SELECT
 cs.account_name, cs.community_name, 
 f.follower_name, f.following_name
 FROM follows f
-JOIN community_subs cs ON f.following_name = cs.account_name 
+JOIN community_subs cs ON f.follower_name = cs.account_name 
 WHERE 
-f.follower_name = '${username}' AND
+f.following_name = '${username}' AND
 cs.community_name = 'hive-173115';
     `);
 
