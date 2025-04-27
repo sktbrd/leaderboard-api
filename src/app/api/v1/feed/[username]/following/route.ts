@@ -17,9 +17,10 @@ export async function GET(
         // Wait for params to be available
         const searchParams = request.nextUrl.searchParams;
         
-        const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
+        const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde/following"
         const parts = pathname.split('/');
-        const username = parts[parts.length - 1];
+        const username = parts[parts.length - 2];
+        console.log(username)
 
         // Get pagination parameters from URL
         // const { searchParams } = new URL(request.url);
