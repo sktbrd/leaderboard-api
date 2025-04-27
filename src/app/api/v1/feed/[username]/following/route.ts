@@ -20,7 +20,7 @@ export async function GET(
         const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde/following"
         const parts = pathname.split('/');
         const username = parts[parts.length - 2];
-        console.log(username)
+        // console.log(username)
 
         // Get pagination parameters from URL
         // const { searchParams } = new URL(request.url);
