@@ -9,7 +9,7 @@ export async function GET(
   console.log("Fetching BALANCE data...");
   try {
     // Wait for params to be available
-    const searchParams = request.nextUrl.searchParams;
+    // const searchParams = request.nextUrl.searchParams;
     const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
     const parts = pathname.split('/');
     const username = parts[parts.length - 1];
