@@ -5,7 +5,7 @@ const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 export async function authenticateToken(request: NextRequest): Promise<boolean> {
   // Get the host from the headers
-  const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
+  // const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
   
   // Check if the host is 'localhost:3000' and skip authentication
   // if (host === 'localhost:3000') {
@@ -13,6 +13,13 @@ export async function authenticateToken(request: NextRequest): Promise<boolean> 
   // }
 
   
+
+  // const authHeader = request.headers.get('authorization');
+  // if (!authHeader) return false;
+  // // Check if the host is 'localhost:3000' and skip authentication
+  // if (host === 'localhost:3000') {
+  //   return true;
+  // }
 
   // const authHeader = request.headers.get('authorization');
   // if (!authHeader) return false;
