@@ -8,15 +8,17 @@ export async function authenticateToken(request: NextRequest): Promise<boolean> 
   const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
   
   // Check if the host is 'localhost:3000' and skip authentication
-  if (host === 'localhost:3000') {
+  // if (host === 'localhost:3000') {
     return true;
-  }
+  // }
 
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return false;
-
-  const token = authHeader.split(' ')[1];
-  if (!token) return false;
   
-  return token === TOKEN_SECRET;
+
+  // const authHeader = request.headers.get('authorization');
+  // if (!authHeader) return false;
+
+  // const token = authHeader.split(' ')[1];
+  // if (!token) return false;
+  
+  // return token === TOKEN_SECRET;
 }
