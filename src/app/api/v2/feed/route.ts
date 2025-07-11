@@ -8,6 +8,7 @@
   
   const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
   const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
+  const PARENT_PERMLINK = process.env.PARENT_PERMLINK
   
   export async function GET(request: Request) {
     console.log("Fetching MAIN FEED data...");
@@ -20,10 +21,15 @@
   
       // Get total count for pagination
       const [totalRows] = await db.executeQuery(`
-        SELECT COUNT(*) as total
+        SELECT COUNT(*) AS total
         FROM comments
-        WHERE parent_permlink SIMILAR TO 'snap-container-%'
-        AND json_metadata @> '{"tags": ["hive-173115"]}'
+        WHERE 
+          (
+            (parent_permlink SIMILAR TO 'snap-container-%'
+            AND json_metadata @> '{"tags": ["hive-173115"]}')
+            OR parent_permlink LIKE '${PARENT_PERMLINK}'
+          )
+          AND deleted = false
       `);
       
       const total = parseInt(totalRows[0].total);
@@ -85,9 +91,13 @@
         LEFT JOIN operation_effective_comment_vote_view v 
           ON c.author = v.author 
           AND c.permlink = v.permlink
-        WHERE c.parent_permlink SIMILAR TO 'snap-container-%'
-        AND c.json_metadata @> '{"tags": ["hive-173115"]}'
-        AND c.deleted = false
+        WHERE 
+        (
+            (c.parent_permlink SIMILAR TO 'snap-container-%'
+            AND c.json_metadata @> '{"tags": ["hive-173115"]}')
+            OR c.parent_permlink LIKE '${PARENT_PERMLINK}'
+          )
+          AND deleted = false
         GROUP BY 
           c.body, 
           c.author, 
