@@ -13,8 +13,9 @@ export async function GET(request: Request) {
     const page = Math.max(1, Number(searchParams.get('page')) || DEFAULT_PAGE);
     const limit = Math.max(1, Number(searchParams.get('limit')) || DEFAULT_LIMIT);
     const offset = (page - 1) * limit;
+    const TAG_FILTER = `"tags": ["${COMMUNITY}"]`;
 
-    // Step 1: Count distinct authors who posted this week
+    // Step 1: Count distinct authors who snap this week
     const [countRows] = await db.executeQuery(`
       SELECT COUNT(*) AS total FROM (
         SELECT c.author
@@ -22,9 +23,9 @@ export async function GET(request: Request) {
         WHERE c.author IN (
           SELECT account_name FROM hafsql.community_subs WHERE community_name = '${COMMUNITY}'
         )
-        AND c.category = '${COMMUNITY}'
         AND c.deleted = false
-        AND c.parent_author = ''
+        AND parent_permlink SIMILAR TO 'snap-container-%'
+        AND c.json_metadata @> '{${TAG_FILTER}}'
         AND c.created >= date_trunc('week', NOW())
         AND c.created < date_trunc('week', NOW()) + interval '7 days'
         GROUP BY c.author
@@ -32,22 +33,22 @@ export async function GET(request: Request) {
     `);
     const total = parseInt(countRows[0].total);
 
-    // Step 2: Get post count per user for this week
+    // Step 2: Get snap count per user for this week
     const [rows, headers] = await db.executeQuery(`
       SELECT 
         c.author AS user,
-        COUNT(*) AS posts
+        COUNT(*) AS snaps
       FROM comments c
       WHERE c.author IN (
         SELECT account_name FROM hafsql.community_subs WHERE community_name = '${COMMUNITY}'
       )
-      AND c.category = '${COMMUNITY}'
       AND c.deleted = false
-      AND c.parent_author = ''
+      AND parent_permlink SIMILAR TO 'snap-container-%'
+      AND c.json_metadata @> '{${TAG_FILTER}}'
       AND c.created >= date_trunc('week', NOW())
       AND c.created < date_trunc('week', NOW()) + interval '7 days'
       GROUP BY c.author
-      ORDER BY posts DESC
+      ORDER BY snaps DESC
       LIMIT ${limit}
       OFFSET ${offset}
     `);
@@ -71,9 +72,9 @@ export async function GET(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Community Posts activity fetch error:', error);
+    console.error('Community Snaps activity fetch error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch community Posts activity' },
+      { success: false, error: 'Failed to fetch community Snaps activity' },
       { status: 500 }
     );
   }
