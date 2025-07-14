@@ -26,7 +26,7 @@ export class HAFSQL_Database {
     const config: HAFSQLConfig = {
       user: process.env.HAFSQL_USER || '',
       password: process.env.HAFSQL_PWD || '',
-      host: process.env.HAFSQL_HOST || '',
+      host: process.env.HAFSQL_SERVER || '',
       database: process.env.HAFSQL_DATABASE || '',
       port: parseInt(process.env.HAFSQL_PORT || '5432', 10),
       max: 2, // Per admin's recommendation
@@ -35,7 +35,7 @@ export class HAFSQL_Database {
     };
 
     if (!config.user || !config.password || !config.host || !config.database) {
-      throw new Error('Missing PostgreSQL environment variables');
+      throw new Error('Missing HafSQL environment variables');
     }
 
     this.pool = new Pool(config);
