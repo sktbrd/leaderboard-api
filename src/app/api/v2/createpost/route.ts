@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { CommentOperation, PrivateKey } from '@hiveio/dhive';
 import { HiveClient } from '@/lib/hive-client';
-import { HAFSQL_Database } from '@/lib/database';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const DEBUG = true;
 const db = new HAFSQL_Database();

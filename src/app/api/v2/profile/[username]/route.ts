@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { HiveClient } from '@/lib/hive-client';
 
 const db = new HAFSQL_Database();

@@ -2,7 +2,7 @@
   Username Feed 
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const db = new HAFSQL_Database();
 

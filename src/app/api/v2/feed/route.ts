@@ -1,26 +1,28 @@
 /*
   Main Feed 
  */
-  import { NextResponse } from 'next/server';
-  import { HAFSQL_Database } from '@/lib/database';
-  
-  const db = new HAFSQL_Database();
-  
-  const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
-  const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
-  const PARENT_PERMLINK = process.env.PARENT_PERMLINK
-  
-  export async function GET(request: Request) {
-    console.log("Fetching MAIN FEED data...");
-    try {
-      // Get pagination parameters from URL
-      const { searchParams } = new URL(request.url);
-      const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-      const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
-      const offset = (page - 1) * limit;
-  
-      // Get total count for pagination
-      const [totalRows] = await db.executeQuery(`
+import { NextResponse } from 'next/server';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
+
+const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
+const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
+const PARENT_PERMLINK = process.env.PARENT_PERMLINK
+
+export async function GET(request: Request) {
+  console.log("Fetching MAIN FEED data...");
+
+  try {
+    const db = new HAFSQL_Database();
+    await db.testConnection();
+
+    // Get pagination parameters from URL
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
+    const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const [totalRows] = await db.executeQuery(`
         SELECT COUNT(*) AS total
         FROM comments
         WHERE 
@@ -31,11 +33,11 @@
           )
           AND deleted = false
       `);
-      
-      const total = parseInt(totalRows[0].total);
-  
-      // Get paginated data
-      const [rows, headers] = await db.executeQuery(`
+
+    const total = parseInt(totalRows[0].total);
+
+    // Get paginated data
+    const [rows, headers] = await db.executeQuery(`
         SELECT 
           c.body, 
           c.author, 
@@ -136,42 +138,51 @@
         ORDER BY c.created DESC
         LIMIT ${limit}
         OFFSET ${offset};`
-      );
-  
-      // Calculate pagination metadata
-      const totalPages = Math.ceil(total / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-  
-      return NextResponse.json(
-        { 
-          success: true, 
-          data: rows,
-          headers: headers,
-          pagination: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNextPage,
-            hasPrevPage,
-            nextPage: hasNextPage ? page + 1 : null,
-            prevPage: hasPrevPage ? page - 1 : null
-          }
-        }, 
-        { status: 200,
-          headers: {
-              'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
-          } }
-      );
-    } catch (error) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          code: 'Failed to fetch data',
-          error
-        }, 
-        { status: 500 }
-      );
-    }
+    );
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: rows,
+        headers: headers,
+        pagination: {
+          total,
+          totalPages,
+          currentPage: page,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null
+        }
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        }
+      }
+    );
+  } catch (error) {
+    const err = error as Error;
+
+    return NextResponse.json(
+      {
+        success: false,
+        code: 'Failed to fetch data',
+        error: err.message,
+        // error: {
+        //   name: err.name,
+        //   message: err.message,
+        //   // stack: err.stack,
+        // }
+      },
+      { status: 500 }
+    );
   }
+}
