@@ -14,7 +14,7 @@ const MULTIPLIER_PAYOUT = 10;
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const COMMUNITY = searchParams.get('community_code') || 'hive-173115';
+    const COMMUNITY = searchParams.get('community_code') || process.env.MY_COMMUNITY_CATEGORY || 'hive-173115';
     const page = Math.max(1, Number(searchParams.get('page')) || DEFAULT_PAGE);
     const limit = Math.max(1, Number(searchParams.get('limit')) || DEFAULT_LIMIT);
     const offset = (page - 1) * limit;
