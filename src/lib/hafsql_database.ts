@@ -1,180 +1,121 @@
-import { Pool, PoolConfig } from 'pg';
+import { Pool, PoolConfig, QueryResult } from 'pg';
 
-// interface DBConfig {
-//   user: string;
-//   password: string;
-//   server: string;
-//   database: string;
-// }
-
-interface DatabaseSchema {
-  [key: string]: string;
+interface HAFSQLConfig extends PoolConfig {
+  user: string;
+  password: string;
+  host: string;
+  database: string;
+  port?: number;
+  max?: number;
+  idleTimeoutMillis?: number;
+  connectionTimeoutMillis?: number;
 }
 
-// If needed, define these constants
-const SQL_QUERIES = {
-  select_tables: 'your_tables_query_here',
-  select_views: 'your_views_query_here',
-  create_tables_schema: 'your_tables_schema_query_here',
-  create_views_schema: 'your_views_schema_query_here'
+interface QueryInput {
+  name: string;
+  value: any;
 }
-
-const SKIP_TABLES: string[] = []; // Add tables to skip here
 
 export class HAFSQL_Database {
-  private pool: Pool;
-  private tablesList: string[] = [];
-  private viewsList: string[] = [];
-  private databaseList: string = '';
-  private databaseSchema: DatabaseSchema = {};
+  private pool: Pool | null = null;
+  private readonly maxRetries: number = 3;
+  private readonly retryDelay: number = 1000; // 1 second
+  private activeConnections: number = 0;
 
   constructor() {
-    const requiredEnv = ['HAFSQL_SERVER', 'HAFSQL_USER', 'HAFSQL_PWD', 'HAFSQL_DATABASE'];
-
-    for (const key of requiredEnv) {
-      if (!process.env[key]) {
-        throw new Error(`Missing required environment variable: ${key}`);
-      }
-    }
-
-    const poolConfig: PoolConfig = {
-      host: process.env.HAFSQL_SERVER!,
-      user: process.env.HAFSQL_USER!,
-      password: process.env.HAFSQL_PWD!,
-      database: process.env.HAFSQL_DATABASE!,
-      connectionTimeoutMillis: 5000, // 5 seconds to get a connection
-      idleTimeoutMillis: 10000,      // 10 seconds idle before closing
-      max: 10                        // optional: ma || ''x number of clients in pool
+    const config: HAFSQLConfig = {
+      user: process.env.HAFSQL_USER || '',
+      password: process.env.HAFSQL_PWD || '',
+      host: process.env.HAFSQL_HOST || '',
+      database: process.env.HAFSQL_DATABASE || '',
+      port: parseInt(process.env.HAFSQL_PORT || '5432', 10),
+      max: 2, // Per admin's recommendation
+      idleTimeoutMillis: 60000, // 60 seconds
+      connectionTimeoutMillis: 30000, // 30 seconds
     };
 
-    this.pool = new Pool(poolConfig);
-    // do not need
-    // this.initializeTables();
+    if (!config.user || !config.password || !config.host || !config.database) {
+      throw new Error('Missing PostgreSQL environment variables');
+    }
+
+    this.pool = new Pool(config);
+
+    this.pool.on('error', (err) => {
+      console.error('PostgreSQL pool error:', err);
+    });
+
+    this.pool.on('connect', () => {
+      this.activeConnections++;
+      console.debug(`Connection acquired. Active connections: ${this.activeConnections}`);
+    });
+
+    this.pool.on('remove', () => {
+      this.activeConnections--;
+      console.debug(`Connection released. Active connections: ${this.activeConnections}`);
+    });
   }
 
-  async testConnection(timeout = 5000): Promise<void> {
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('DB connection timed out')), timeout)
+  async executeQuery(query: string, inputs: QueryInput[] = []): Promise<QueryResult> {
+    if (!this.pool) {
+      throw new Error('Connection pool not initialized');
+    }
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        const values = inputs.map(i => i.value);
+        const text = inputs.length
+          ? query.replace(/@(\w+)/g, (_, name) => `$${inputs.findIndex(i => i.name === name) + 1}`)
+          : query;
+
+        console.time(`HAFSQL Query: ${query.substring(0, 50)}...`);
+        const result = await this.pool.query(text, values);
+        console.timeEnd(`HAFSQL Query: ${query.substring(0, 50)}...`);
+
+        if (result.rows.length > 0) {
+          console.debug('Sample recordset:', JSON.stringify(result.rows[0], null, 2));
+        }
+
+        return result;
+      } catch (error: any) {
+        console.error(`Query attempt ${attempt} failed:`, {
+          query: query.substring(0, 100) + '...',
+          inputs: inputs.map(i => ({ name: i.name, value: i.value })),
+          activeConnections: this.activeConnections,
+          error: error.message,
+        });
+        if (attempt < this.maxRetries && this.isTransientError(error)) {
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Query execution failed after retries');
+  }
+
+  private isTransientError(error: any): boolean {
+    return (
+      error.code === 'ECONNREFUSED' ||
+      error.code === 'ETIMEDOUT' ||
+      error.message.includes('server closed the connection unexpectedly') ||
+      error.message.includes('terminating connection due to administrator command')
     );
+  }
 
-    const connectPromise = (async () => {
-      const client = await this.pool.connect();
+  async close() {
+    if (this.pool) {
+      console.log('Closing HAFSQL database connection...');
       try {
-        await client.query('SELECT 1');
-      } finally {
-        client.release();
+        await this.pool.end();
+        console.log('HAFSQL database connection closed');
+      } catch (error: any) {
+        console.error('Error closing HAFSQL connection:', error.message);
       }
-    })();
-
-    try {
-      await Promise.race([timeoutPromise, connectPromise]);
-    } catch (err: any) {
-      console.error('DB connection failed:', {
-        name: err?.name,
-        message: err?.message,
-        code: err?.code,
-        severity: err?.severity,
-      });
-      throw err;
+      this.pool = null;
+      this.activeConnections = 0;
     }
   }
 
-  private async initializeTables(): Promise<void> {
-    try {
-      const client = await this.pool.connect();
-
-      try {
-        // Get table names
-        const tableResult = await client.query(SQL_QUERIES.select_tables);
-        this.tablesList = tableResult.rows
-          .filter(row => this.isTableAvailable(row[0]))
-          .map(row => row[0]);
-
-        // Get views names
-        const viewResult = await client.query(SQL_QUERIES.select_views);
-        this.viewsList = viewResult.rows
-          .filter(row => this.isTableAvailable(row[0]))
-          .map(row => row[0]);
-
-        // Get table schemas
-        const tableSchemaResult = await client.query(SQL_QUERIES.create_tables_schema);
-        for (const row of tableSchemaResult.rows) {
-          const createStatement = row[0];
-          const match = createStatement.match(/CREATE TABLE (\w+)/);
-          if (match) {
-            const tableName = match[1];
-            if (this.isTableAvailable(tableName)) {
-              this.databaseSchema[tableName] = createStatement;
-            }
-          }
-        }
-
-        // Get view schemas
-        const viewSchemaResult = await client.query(SQL_QUERIES.create_views_schema);
-        for (const row of viewSchemaResult.rows) {
-          const createStatement = row[0];
-          const match = createStatement.match(/CREATE VIEW (\w+)/);
-          if (match) {
-            const tableName = match[1];
-            if (this.isTableAvailable(tableName)) {
-              this.databaseSchema[tableName] = createStatement;
-            }
-          }
-        }
-
-        // Create formatted database list
-        this.databaseList = `TABLES:\n\`\`\`sql\n${this.tablesList.join('\n')}\n\`\`\`\nVIEWS:\n\`\`\`sql\n${this.viewsList.join('\n')}\n\`\`\``;
-
-      } finally {
-        client.release();
-      }
-    } catch (error) {
-      console.error('Database initialization error:', error);
-      throw error;
-    }
-  }
-
-  private isTableAvailable(tableName: string): boolean {
-    return !SKIP_TABLES.includes(tableName);
-  }
-
-
-  async executeQuery(query: string, // fetchSize: number = 100
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<[any[], string[]]> {
-    const client = await this.pool.connect();
-    try {
-
-      console.time(`HafSQL Query: ${query.substring(0, 25)}...`);
-      const result = await client.query({
-        text: query,
-      });
-      console.timeEnd(`HafSQL Query: ${query.substring(0, 25)}...`);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const header = result.fields.map((field: { name: any; }) => field.name);
-      return [result.rows, header];
-    } catch (error) {
-      console.error('Query execution error:', (error as Error).message);
-      return [[], []];
-    } finally {
-      client.release();
-    }
-  }
-
-  getTablesList(): string[] {
-    return this.tablesList;
-  }
-
-  getViewsList(): string[] {
-    return this.viewsList;
-  }
-
-  getDatabaseList(): string {
-    return this.databaseList;
-  }
-
-  getDatabaseSchema(): DatabaseSchema {
-    return this.databaseSchema;
+  getActiveConnections(): number {
+    return this.activeConnections;
   }
 }
