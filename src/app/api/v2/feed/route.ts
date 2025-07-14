@@ -137,6 +137,7 @@ export async function GET(request: Request) {
     const hafDb = new HAFSQL_Database();
     await hafDb.testConnection();
 
+    // uncomment to test hivesql results
     // throw "debug error"
 
     const [hafTotalResult] = await hafDb.executeQuery(`
@@ -207,74 +208,110 @@ export async function GET(request: Request) {
       const hivesqlDb = new HiveSQL_Database();
       // await hivesqlDb.testConnection();
 
-      const { recordset: totalResult } = await hivesqlDb.executeQuery(`
-  SELECT COUNT(*) AS total
-FROM DBHive.dbo.Comments c
-WHERE 
-    (
-        (
-            c.parent_permlink LIKE 'snap-container-%'
-            AND ISJSON(c.json_metadata) = 1
-            AND EXISTS (
-                SELECT 1
-                FROM OPENJSON(c.json_metadata, '$.tags') WITH (tag NVARCHAR(MAX) '$')
-                WHERE tag = '${COMMUNITY}'
-            )
-        )
-        OR c.parent_permlink = '${PARENT_PERMLINK}'
-    )
-`);
-      total = parseInt(totalResult[0].total, 10);
+      //
+      // ISSUE: its taking long time to COUNT using this query. lets skip that for now...
+      //
+
+//       const { recordset: totalResult } = await hivesqlDb.executeQuery(`
+//   SELECT COUNT(*) AS total
+// FROM DBHive.dbo.Comments c
+// WHERE 
+//     (
+//         (
+//             c.parent_permlink LIKE 'snap-container-%'
+//             AND ISJSON(c.json_metadata) = 1
+//             AND EXISTS (
+//                 SELECT 1
+//                 FROM OPENJSON(c.json_metadata, '$.tags') WITH (tag NVARCHAR(MAX) '$')
+//                 WHERE tag = '${COMMUNITY}'
+//             )
+//         )
+//         OR c.parent_permlink = '${PARENT_PERMLINK}'
+//     )
+// `);
+//       total = parseInt(totalResult[0].total, 10);
 
 
       const { recordset: hiveRows } = await hivesqlDb.executeQuery(`
-    SELECT
-        c.ID, c.author, c.permlink, c.parent_author, c.parent_permlink, c.title, c.body, 
-        c.json_metadata, c.created, c.last_payout, c.category, 
-        c.total_payout_value, c.curator_payout_value, c.author_rewards, 
-        c.pending_payout_value, c.total_pending_payout_value, c.net_votes, 
-        c.max_accepted_payout, c.percent_hbd, c.allow_votes, c.allow_curation_rewards, 
-        c.beneficiaries, c.url,
-        a.json_metadata AS user_json_metadata, 
-        --a.reputation, a.followers, a.followings,
-        ISNULL(
+        SELECT
+            c.ID AS id,
+            c.author,
+            c.permlink,
+            c.parent_author,
+            c.parent_permlink,
+            c.title,
+            c.body,
+            c.json_metadata AS post_json_metadata,
+            c.created,
+            NULL AS last_edited, -- Add if column exists
+            NULL AS cashout_time, -- Add if column exists
+            NULL AS remaining_till_cashout, -- Add if computable
+            c.last_payout,
+            NULL AS tags, -- Extract from json_metadata if needed
+            c.category,
+            NULL AS root_author, -- Add if column exists
+            NULL AS root_permlink, -- Add if column exists
+            CAST(c.pending_payout_value AS NVARCHAR) AS pending_payout_value,
+            CAST(c.author_rewards AS NVARCHAR) AS author_rewards,
+            NULL AS author_rewards_in_hive, -- Add if column exists
+            CAST(c.total_payout_value AS NVARCHAR) AS total_payout_value,
+            CAST(c.curator_payout_value AS NVARCHAR) AS curator_payout_value,
+            NULL AS beneficiary_payout_value, -- Add if column exists
+            NULL AS total_rshares, -- Add if column exists
+            NULL AS net_rshares, -- Add if column exists
+            NULL AS total_vote_weight, -- Add if column exists
+            CAST(c.max_accepted_payout AS NVARCHAR) + '.0' AS max_accepted_payout,
+            c.percent_hbd,
+            c.allow_votes,
+            c.allow_curation_rewards,
+            0 AS deleted, -- Add if column exists
+            c.beneficiaries,
+            c.url,
+            a.json_metadata AS user_json_metadata,
+            NULL AS reputation, -- Add if column exists
+            NULL AS followers, -- Add if column exists
+            NULL AS followings, -- Add if column exists
+            ISNULL(
+                (
+                    SELECT JSON_QUERY(
+                        (
+                            SELECT 
+                                v.id AS id,
+                                FORMAT(v.[timestamp], 'yyyy-MM-ddTHH:mm:ss') AS [timestamp],
+                                v.voter AS voter,
+                                v.weight AS weight --,
+                                -- v.rshares AS rshares,
+                                -- v.total_vote_weight AS total_vote_weight,
+                                -- v.pending_payout AS pending_payout,
+                                -- v.pending_payout_symbol AS pending_payout_symbol
+                            FROM DBHive.dbo.TxVotes v
+                            WHERE v.author = c.author AND v.permlink = c.permlink
+                            FOR JSON PATH
+                        )
+                    )
+                ), '[]'
+            ) AS votes
+        FROM DBHive.dbo.Comments c
+        LEFT JOIN DBHive.dbo.Accounts a ON c.author = a.name
+        WHERE 
             (
-                SELECT JSON_QUERY(
-                    (
-                        SELECT 
-                            v.id AS id,
-                            FORMAT(v.[timestamp], 'yyyy-MM-ddTHH:mm:ss') AS [timestamp],
-                            v.voter AS voter,
-                            v.weight AS weight
-    --                        v.rshares AS rshares,
-    --                        v.total_vote_weight AS total_vote_weight,
-    --                        v.pending_payout AS pending_payout,
-    --                        v.pending_payout_symbol AS pending_payout_symbol
-                        FROM DBHive.dbo.TxVotes v
-                        WHERE v.author = c.author AND v.permlink = c.permlink
-                        FOR JSON PATH
+                (
+                    c.parent_permlink LIKE 'snap-container-%'
+                    AND ISJSON(c.json_metadata) = 1
+                    AND EXISTS (
+                        SELECT 1
+                        FROM OPENJSON(c.json_metadata, '$.tags') WITH (tag NVARCHAR(MAX) '$')
+                        WHERE tag = '${COMMUNITY}'
                     )
                 )
-            ), '[]'
-        ) AS votes
-    FROM DBHive.dbo.Comments c
-    LEFT JOIN DBHive.dbo.Accounts a ON c.author = a.name
-    WHERE 
-        (
-            (
-                c.parent_permlink LIKE 'snap-container-%'
-                AND EXISTS (
-                    SELECT 1
-                    FROM OPENJSON(c.json_metadata, '$.tags') WITH (tag NVARCHAR(MAX) '$')
-                    WHERE tag = '${COMMUNITY}'
-                )
+                OR c.parent_permlink = '${PARENT_PERMLINK}'
             )
-            OR c.parent_permlink = '${PARENT_PERMLINK}'
-        )
-        --AND c.deleted = 0
-    ORDER BY c.created DESC
-    OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY;
+            -- AND c.deleted = 0
+        ORDER BY c.created DESC
+        OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY;
     `);
+
+      total = hiveRows[0].length * 5; // mock total for pagination.... BUG on sight!!!!
 
       resultsRows = hiveRows;
       console.log("⚠️ Fallback: Using HiveSQL data");
