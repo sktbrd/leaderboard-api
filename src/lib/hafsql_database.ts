@@ -68,8 +68,13 @@ export class HAFSQL_Database {
 
     try {
       await Promise.race([timeoutPromise, connectPromise]);
-    } catch (err) {
-      console.error('DB connection failed:', err);
+    } catch (err: any) {
+      console.error('DB connection failed:', {
+        name: err?.name,
+        message: err?.message,
+        code: err?.code,
+        severity: err?.severity,
+      });
       throw err;
     }
   }
