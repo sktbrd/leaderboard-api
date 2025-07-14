@@ -2,7 +2,7 @@
   Following Feed
 */
 import { NextRequest, NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;

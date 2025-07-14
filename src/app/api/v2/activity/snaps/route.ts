@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const db = new HAFSQL_Database();
 
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_LIMIT = 2000;
+
+// Constantes para os pesos do score
+const MULTIPLIER_SNAPS = 1.5;
+const MULTIPLIER_VOTES = 0.2;
+const MULTIPLIER_PAYOUT = 10;
 
 export async function GET(request: Request) {
   try {
@@ -15,26 +20,7 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
     const TAG_FILTER = `"tags": ["${COMMUNITY}"]`;
 
-    // Step 1: Count distinct authors who snap this week
-    const [countRows] = await db.executeQuery(`
-      SELECT COUNT(*) AS total FROM (
-        SELECT c.author
-        FROM comments c
-        WHERE c.author IN (
-          SELECT account_name FROM hafsql.community_subs WHERE community_name = '${COMMUNITY}'
-        )
-        AND c.deleted = false
-        AND parent_permlink SIMILAR TO 'snap-container-%'
-        AND c.json_metadata @> '{${TAG_FILTER}}'
-        AND c.created >= date_trunc('week', NOW())
-        AND c.created < date_trunc('week', NOW()) + interval '7 days'
-        GROUP BY c.author
-      ) AS sub
-    `);
-    const total = parseInt(countRows[0].total);
-
-    // Step 2: Get snap count per user for this week
-    const [rows, headers] = await db.executeQuery(`
+    const query = `
       SELECT 
         c.author AS user,
         COUNT(*) AS snaps,
@@ -43,7 +29,19 @@ export async function GET(request: Request) {
           FROM operation_effective_comment_vote_view v 
           WHERE v.author = c.author 
           AND v.permlink = c.permlink
-        )), 0) AS total_votes
+        )), 0) AS total_votes,
+        SUM(c.author_rewards_in_hive + c.pending_payout_value) AS total_payout,
+        ROUND(
+          (COUNT(*) * ${MULTIPLIER_SNAPS}) 
+          + (COALESCE(SUM((
+              SELECT COUNT(*) 
+              FROM operation_effective_comment_vote_view v 
+              WHERE v.author = c.author 
+              AND v.permlink = c.permlink
+            )), 0) * ${MULTIPLIER_VOTES})
+          + (SUM(c.author_rewards_in_hive + c.pending_payout_value) * ${MULTIPLIER_PAYOUT})
+        ) AS score,
+        TO_CHAR(NOW(), 'IYYY-IW') AS current_week
       FROM comments c
       WHERE c.author IN (
         SELECT account_name FROM hafsql.community_subs WHERE community_name = '${COMMUNITY}'
@@ -54,10 +52,13 @@ export async function GET(request: Request) {
       AND c.created >= date_trunc('week', NOW())
       AND c.created < date_trunc('week', NOW()) + interval '7 days'
       GROUP BY c.author
-      ORDER BY snaps DESC
+      ORDER BY score DESC
       LIMIT ${limit}
-      OFFSET ${offset}
-    `);
+      OFFSET ${offset};
+    `;
+
+    const [rows, headers] = await db.executeQuery(query);
+    const total = rows.length;
 
     return NextResponse.json(
       {
