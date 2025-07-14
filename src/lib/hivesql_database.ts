@@ -6,8 +6,9 @@ interface HiveSQLConfig extends SqlConfig {
   server: string;
   database: string;
   options?: {
-    encrypt?: boolean;       // depending on your server config
+    encrypt?: boolean;                // depending on your server config
     trustServerCertificate?: boolean; // for self-signed certs
+    requestTimeout?: number           // ⏱️ Increase to 2 minutes
   };
   pool?: {
     max?: number;
@@ -28,6 +29,7 @@ export class HiveSQL_Database {
       options: {
         encrypt: true, // Set to false if not using encrypted connection
         trustServerCertificate: true, // change as needed
+        requestTimeout: 120000 // ⏱️ Increase to 2 minutes
       },
       pool: {
         max: 10,
