@@ -423,45 +423,45 @@ export async function GET(request: Request) {
     console.log('✅ Using HAFSQL data');
 
     // Compare with HiveSQL for debugging (optional)
-    try {
-      const hivesqlDb = new HiveSQL_Database();
-      await hivesqlDb.connect();
+    // try {
+    //   const hivesqlDb = new HiveSQL_Database();
+    //   await hivesqlDb.connect();
 
-      const hiveComments = await fetchComments(hivesqlDb, limit, offset, COMMUNITY, PARENT_PERMLINK);
-      const authors = [...new Set(hiveComments.map(c => c.author))];
-      const authorPermlinks = hiveComments.map(c => ({ author: c.author, permlink: c.permlink }));
-      const [accounts, votes] = await Promise.all([
-        fetchAccounts(hivesqlDb, authors),
-        fetchVotes(hivesqlDb, authorPermlinks),
-      ]);
-      const accountsMap = new Map(accounts.map(a => [a.author, a.user_json_metadata]));
-      const votesMap = new Map(votes.map(v => [`${v.author}:${v.permlink}`, v.votes]));
-      const hiveRows = hiveComments.map(comment => ({
-        ...comment,
-        user_json_metadata: accountsMap.get(comment.author) || null,
-        reputation: null,
-        followers: null,
-        followings: null,
-        votes: votesMap.get(`${comment.author}:${comment.permlink}`) || [],
-      }));
+    //   const hiveComments = await fetchComments(hivesqlDb, limit, offset, COMMUNITY, PARENT_PERMLINK);
+    //   const authors = [...new Set(hiveComments.map(c => c.author))];
+    //   const authorPermlinks = hiveComments.map(c => ({ author: c.author, permlink: c.permlink }));
+    //   const [accounts, votes] = await Promise.all([
+    //     fetchAccounts(hivesqlDb, authors),
+    //     fetchVotes(hivesqlDb, authorPermlinks),
+    //   ]);
+    //   const accountsMap = new Map(accounts.map(a => [a.author, a.user_json_metadata]));
+    //   const votesMap = new Map(votes.map(v => [`${v.author}:${v.permlink}`, v.votes]));
+    //   const hiveRows = hiveComments.map(comment => ({
+    //     ...comment,
+    //     user_json_metadata: accountsMap.get(comment.author) || null,
+    //     reputation: null,
+    //     followers: null,
+    //     followings: null,
+    //     votes: votesMap.get(`${comment.author}:${comment.permlink}`) || [],
+    //   }));
 
-      // Compare HAFSQL and HiveSQL results
-      for (let i = 0; i < hafRows.length; i++) {
-        const hafPost = normalizePost(hafRows[i], 'haf');
-        const hivePost = hiveRows[i] ? normalizePost(hiveRows[i], 'hive') : null;
-        if (!hivePost) {
-          console.warn(`No matching HiveSQL post for HAFSQL post index ${i}, author: ${hafPost.author}, permlink: ${hafPost.permlink}`);
-          continue;
-        }
-        if (!comparePostsVerbose(hafPost, hivePost)) {
-          console.log(`↪ Mismatch at index ${i}`);
-        }
-      }
+    //   // Compare HAFSQL and HiveSQL results
+    //   for (let i = 0; i < hafRows.length; i++) {
+    //     const hafPost = normalizePost(hafRows[i], 'haf');
+    //     const hivePost = hiveRows[i] ? normalizePost(hiveRows[i], 'hive') : null;
+    //     if (!hivePost) {
+    //       console.warn(`No matching HiveSQL post for HAFSQL post index ${i}, author: ${hafPost.author}, permlink: ${hafPost.permlink}`);
+    //       continue;
+    //     }
+    //     if (!comparePostsVerbose(hafPost, hivePost)) {
+    //       console.log(`↪ Mismatch at index ${i}`);
+    //     }
+    //   }
 
-      await hivesqlDb.close();
-    } catch (hiveError) {
-      console.warn('HiveSQL comparison failed:', hiveError);
-    }
+    //   await hivesqlDb.close();
+    // } catch (hiveError) {
+    //   console.warn('HiveSQL comparison failed:', hiveError);
+    // }
   } catch (hafError) {
     console.warn('HAFSQL failed, falling back to HiveSQL:', hafError);
     const hivesqlDb = new HiveSQL_Database();

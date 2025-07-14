@@ -145,11 +145,11 @@ export class HAFSQL_Database {
     const client = await this.pool.connect();
     try {
 
-      console.time(`HafSQL Query: ${query.substring(0, 50)}...`);
+      console.time(`HafSQL Query: ${query.substring(0, 25)}...`);
       const result = await client.query({
         text: query,
       });
-      console.timeEnd(`HafSQL Query: ${query.substring(0, 50)}...`);
+      console.timeEnd(`HafSQL Query: ${query.substring(0, 25)}...`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const header = result.fields.map((field: { name: any; }) => field.name);
