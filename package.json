@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -15,6 +15,7 @@
     "date-fns": "^4.1.0",
     "ethers": "^6.13.5",
     "graphql-request": "^7.1.2",
+    "mssql": "^11.0.1",
     "next": "15.1.5",
     "pg": "^8.14.1",
     "react": "^18.2.0",
@@ -23,11 +24,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/mssql": "^9.1.7",
     "@types/node": "^20",
-    "@types/pg": "^8.11.13",
+    "@types/pg": "^8.11.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "eslint": "^9.25.1",
     "eslint-config-next": "15.1.5",
     "typescript": "^5"
   }

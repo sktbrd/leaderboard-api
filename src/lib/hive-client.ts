@@ -1,4 +1,4 @@
-import { Asset, Client } from '@hiveio/dhive';
+import { Client } from '@hiveio/dhive';
 
 export const HiveClient = new Client([
     "https://api.deathwing.me",

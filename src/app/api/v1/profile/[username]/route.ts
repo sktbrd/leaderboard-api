@@ -1,16 +1,18 @@
-import { NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { NextRequest, NextResponse } from 'next/server';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { HiveClient } from '@/lib/hive-client';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
-  { params }: { params: { username: string } }
+  request: NextRequest,
 ) {
   try {
     // Wait for params to be available
-    const { username } = await params;
+    // const { searchParams } = new URL(request.url);
+    const pathname = request.url; // e.g., "/api/v1/profile/vaipraonde"
+    const parts = pathname.split('/');
+    const username = parts[parts.length - 1];
 
     // Get account information
     const [rows, headers] = await db.executeQuery(`
@@ -64,7 +66,7 @@ export async function GET(
     // console.dir(totalPostsRows);
 
     // Get following? information
-    const [rowsFollowing, headersFollowing] = await db.executeQuery(`
+    const [rowsFollowing] = await db.executeQuery(`
 SELECT Count(f.following_name) 
 FROM follows f
 JOIN community_subs cs ON f.following_name = cs.account_name 
@@ -74,7 +76,7 @@ cs.community_name = 'hive-173115';
           `);
 
     // Get followers? information
-    const [rowsFollowers, headersFollowers] = await db.executeQuery(`
+    const [rowsFollowers] = await db.executeQuery(`
 SELECT Count(f.follower_name) 
 FROM follows f
 JOIN community_subs cs ON f.follower_name = cs.account_name 
@@ -84,10 +86,14 @@ cs.community_name = 'hive-173115';
       `);
 
 
-    const hiverc = await HiveClient.rc.getRCMana(username);
-    const hiveMana = await HiveClient.rc.getVPMana(username);
-    const vp_percent = `${hiveMana.percentage / 100}`
-    const rc_percent = `${hiverc.percentage / 100}`
+
+    const hiverc = await HiveClient.rc.getRCMana(username)
+    const hiveMana = await HiveClient.rc.getVPMana(username)
+
+    const vp_percent = `${(hiveMana.percentage ?? 0) / 100}`
+    const rc_percent = `${(hiverc.percentage ?? 0) / 100}`
+
+
 
     return NextResponse.json(
       {
@@ -98,7 +104,7 @@ cs.community_name = 'hive-173115';
           community_followings: rowsFollowing[0].count,
           community_totalposts: totalPostsRows[0].total,
           vp_percent,
-          rc_percent, 
+          rc_percent,
         },
         headers: headers
       },

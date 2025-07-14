@@ -1,25 +1,28 @@
 /*
   Following Feed
 */
-import { NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
-
-const db = new HAFSQL_Database();
+import { NextRequest, NextResponse } from 'next/server';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
+const db = new HAFSQL_Database();
+
 export async function GET(
-    request: Request,
-    { params }: { params: { username: string } }
+    request: NextRequest,
 ) {
-    console.log("Fetching USER FOLLOWING FEED data...");
+    console.log("Fetching BALANCE data...");
     try {
-        let { username } = await params;
-        if (username == "SPECTATOR") username = "steemskate";
+        // Wait for params to be available
+        const searchParams = request.nextUrl.searchParams;
+        
+        const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
+        const parts = pathname.split('/');
+        const username = parts[parts.length - 1];
 
         // Get pagination parameters from URL
-        const { searchParams } = new URL(request.url);
+        // const { searchParams } = new URL(request.url);
         const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
         const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
         const offset = (page - 1) * limit;
@@ -176,7 +179,8 @@ export async function GET(
         return NextResponse.json(
             {
                 success: false,
-                error: 'Failed to fetch data'
+                code: 'Failed to fetch data',
+                error
             },
             { status: 500 }
         );

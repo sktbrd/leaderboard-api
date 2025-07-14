@@ -1,16 +1,18 @@
-import { NextResponse } from 'next/server';
-import { HAFSQL_Database } from '@/lib/database';
+import { NextRequest, NextResponse } from 'next/server';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const db = new HAFSQL_Database();
 
 export async function GET(
-  request: Request,
-  { params }: { params: { username: string } }
+  request: NextRequest,
 ) {
   console.log("Fetching BALANCE data...");
   try {
     // Wait for params to be available
-    const { username } = await params;
+    // const searchParams = request.nextUrl.searchParams;
+    const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
+    const parts = pathname.split('/');
+    const username = parts[parts.length - 1];
 
     // Get user's balance information
     const [rows, headers] = await db.executeQuery(`
