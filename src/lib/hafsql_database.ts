@@ -144,9 +144,12 @@ export class HAFSQL_Database {
   ): Promise<[any[], string[]]> {
     const client = await this.pool.connect();
     try {
+
+      console.time(`HafSQL Query: ${query.substring(0, 50)}...`);
       const result = await client.query({
         text: query,
       });
+      console.timeEnd(`HafSQL Query: ${query.substring(0, 50)}...`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const header = result.fields.map((field: { name: any; }) => field.name);

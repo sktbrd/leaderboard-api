@@ -1,4 +1,4 @@
-import sql, { ConnectionPool, config as SqlConfig } from 'mssql';
+import sql, { ConnectionPool, config as SqlConfig, IProcedureResult } from 'mssql';
 
 interface HiveSQLConfig extends SqlConfig {
   user: string;
@@ -6,15 +6,22 @@ interface HiveSQLConfig extends SqlConfig {
   server: string;
   database: string;
   options?: {
-    encrypt?: boolean;                // depending on your server config
-    trustServerCertificate?: boolean; // for self-signed certs
-    requestTimeout?: number           // ⏱️ Increase to 2 minutes
+    encrypt?: boolean;
+    trustServerCertificate?: boolean;
+    requestTimeout?: number; // Timeout for queries
+    connectTimeout?: number; // Timeout for connections
   };
   pool?: {
     max?: number;
     min?: number;
     idleTimeoutMillis?: number;
   };
+}
+
+interface QueryInput {
+  name: string;
+  type: any; // sql.Int, sql.NVarChar, etc.
+  value: any; // number, string, etc.
 }
 
 export class HiveSQL_Database {
@@ -28,13 +35,14 @@ export class HiveSQL_Database {
       database: process.env.HIVESQL_DATABASE || '',
       options: {
         encrypt: true, // Set to false if not using encrypted connection
-        trustServerCertificate: true, // change as needed
-        requestTimeout: 120000 // ⏱️ Increase to 2 minutes
+        trustServerCertificate: true, // For self-signed certs
+        requestTimeout: 180000, // 3 minutes to handle slow queries
+        connectTimeout: 30000, // 30 seconds for connection
       },
       pool: {
-        max: 10,
+        max: 20, // Increased for concurrent queries
         min: 0,
-        idleTimeoutMillis: 30000,
+        idleTimeoutMillis: 60000, // 60 seconds for idle connections
       },
     };
 
@@ -50,28 +58,42 @@ export class HiveSQL_Database {
       throw new Error('Connection pool not initialized');
     }
     if (!this.pool.connected) {
+      console.log('Connecting to HiveSQL database...');
       await this.pool.connect();
+      console.log('HiveSQL database connected');
     }
   }
 
-  async executeQuery(query: string): Promise<{ recordset: any[] }> {
+  async executeQuery(query: string, inputs: QueryInput[] = []): Promise<{ recordset: any[] }> {
     if (!this.pool) {
       throw new Error('Connection pool not initialized');
     }
     try {
       await this.connect();
-      const result = await this.pool.request().query(query);
-      return result;
+      const request = this.pool.request();
+      inputs.forEach(({ name, type, value }) => request.input(name, type, value));
+
+      console.time(`HiveSQL Query: ${query.substring(0, 50)}...`);
+      const result = await request.query(query);
+      console.timeEnd(`HiveSQL Query: ${query.substring(0, 50)}...`);
+
+      return { recordset: result.recordset };
     } catch (error) {
-      console.error('SQL Server query error:', error);
+      console.error('SQL Server query error:', {
+        query: query.substring(0, 100) + '...',
+        inputs: inputs.map(i => ({ name: i.name, value: i.value })),
+        error,
+      });
       throw error;
     }
   }
 
   async close() {
-    if (this.pool) {
+    if (this.pool && this.pool.connected) {
+      console.log('Closing HiveSQL database connection...');
       await this.pool.close();
       this.pool = null;
+      console.log('HiveSQL database connection closed');
     }
   }
 }
