@@ -4,8 +4,8 @@ import { normalizePost, Comment } from './helpers';
 
 // Module-level cache (limited effectiveness in Vercel)
 const cache: Map<string, { total?: number; rows?: Comment[]; timestamp: number }> = new Map();
-const cacheTTL = 300000;  // 5 minutes for main query results
-const totalTTL = 60000;   // 1 minute for total
+const cacheTTL = 300000; // 5 minutes for main query results
+const totalTTL = 60000; // 1 minute for total
 
 function cleanupCache() {
   const now = Date.now();
@@ -25,18 +25,15 @@ interface FeedData {
   rows: Comment[];
 }
 
-async function fetchFeedData(
+async function fetchTotal(
   hafDb: HAFSQL_Database,
   community: string,
-  parentPermlink: string,
-  limit: number,
-  offset: number
-): Promise<FeedData> {
+  parentPermlink: string
+): Promise<number> {
   const tagFilter = `{"tags": ["${community}"]}`;
-
-  // Fetch total
   console.time('⏱️ HAFSQL COUNT Query');
-  const totalResult = await hafDb.executeQuery(`
+  const totalResult = await hafDb.executeQuery(
+    `
     SELECT COUNT(*) AS total
     FROM comments c
     WHERE 
@@ -56,11 +53,22 @@ async function fetchFeedData(
     ]
   );
   console.timeEnd('⏱️ HAFSQL COUNT Query');
-  const total = parseInt(totalResult.rows[0].total, 10);
+  return parseInt(totalResult.rows[0].total, 10);
+}
 
-  // Fetch main query
+async function fetchFeedData(
+  hafDb: HAFSQL_Database,
+  community: string,
+  parentPermlink: string,
+  limit: number,
+  offset: number
+): Promise<FeedData> {
+  const tagFilter = `{"tags": ["${community}"]}`;
+  const total = await fetchTotal(hafDb, community, parentPermlink);
+
   console.time('HAFSQL Main Query');
-  const hafRows = await hafDb.executeQuery(`
+  const hafRows = await hafDb.executeQuery(
+    `
     SELECT 
       c.body, c.author, c.permlink, c.parent_author, c.parent_permlink, 
       c.created, c.last_edited, c.cashout_time, c.remaining_till_cashout, c.last_payout, 
@@ -92,9 +100,9 @@ async function fetchFeedData(
     WHERE 
       (
         (
-            c.parent_author = 'peak.snaps'
-            AND c.parent_permlink SIMILAR TO 'snap-container-%'
-            AND c.json_metadata @> @tag_filter
+          c.parent_author = 'peak.snaps'
+          AND c.parent_permlink SIMILAR TO 'snap-container-%'
+          AND c.json_metadata @> @tag_filter
         )
         OR c.parent_permlink = @parent_permlink
       )
@@ -149,29 +157,7 @@ export async function GET(request: Request) {
       resultsRows = cached.rows || [];
       console.log('📁 Using cached rows:', { rowCount: resultsRows.length });
 
-      console.time('⏱️ HAFSQL COUNT Query (Cache Verify)');
-      const totalResult = await hafDb.executeQuery(`
-        SELECT COUNT(*) AS total
-        FROM comments c
-        WHERE 
-          (
-            (
-              c.parent_author = 'peak.snaps' 
-              AND c.parent_permlink SIMILAR TO 'snap-container-%' 
-              AND c.json_metadata @> @tag_filter
-            )
-            OR c.parent_permlink = @parent_permlink
-          )
-          AND c.deleted = false;
-        `,
-        [
-          { name: 'tag_filter', value: `{"tags": ["${COMMUNITY}"]}` },
-          { name: 'parent_permlink', value: PARENT_PERMLINK },
-        ]
-      );
-      console.timeEnd('⏱️ HAFSQL COUNT Query (Cache Verify)');
-
-      total = parseInt(totalResult.rows[0].total, 10);
+      total = await fetchTotal(hafDb, COMMUNITY, PARENT_PERMLINK);
       if (total !== cached.total && Date.now() - cached.timestamp > totalTTL) {
         // Total changed and TTL for total expired: Refresh cache
         console.log('⚠️ Total changed, refreshing cache:', { oldTotal: cached.total, newTotal: total });
