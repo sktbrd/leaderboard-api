@@ -28,7 +28,7 @@ export class HAFSQL_Database {
       password: process.env.HAFSQL_PWD || '',
       host: process.env.HAFSQL_SERVER || '',
       database: process.env.HAFSQL_DATABASE || '',
-      port: parseInt(process.env.HAFSQL_PORT || '5432', 10),
+      // port: parseInt(process.env.HAFSQL_PORT || '5432', 10),
       max: 2, // Per admin's recommendation
       idleTimeoutMillis: 60000, // 60 seconds
       connectionTimeoutMillis: 30000, // 30 seconds
@@ -66,13 +66,13 @@ export class HAFSQL_Database {
           ? query.replace(/@(\w+)/g, (_, name) => `$${inputs.findIndex(i => i.name === name) + 1}`)
           : query;
 
-        console.time(`HAFSQL Query: ${query.substring(0, 50)}...`);
+        console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
         const result = await this.pool.query(text, values);
-        console.timeEnd(`HAFSQL Query: ${query.substring(0, 50)}...`);
+        console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
 
-        if (result.rows.length > 0) {
-          console.debug('Sample recordset:', JSON.stringify(result.rows[0], null, 2));
-        }
+        // if (result.rows.length > 0) {
+        //   console.debug('Sample recordset:', JSON.stringify(result.rows[0], null, 2));
+        // }
 
         return result;
       } catch (error: any) {
