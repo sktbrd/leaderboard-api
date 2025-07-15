@@ -157,10 +157,13 @@ export async function GET(request: Request) {
       resultsRows = cached.rows || [];
       console.log('📁 Using cached rows:', { rowCount: resultsRows.length });
 
-      total = await fetchTotal(hafDb, COMMUNITY, PARENT_PERMLINK);
-      if (total !== cached.total && Date.now() - cached.timestamp > totalTTL) {
+      // total = await fetchTotal(hafDb, COMMUNITY, PARENT_PERMLINK);
+      if (
+        // total !== cached.total && 
+        Date.now() - cached.timestamp > totalTTL) {
         // Total changed and TTL for total expired: Refresh cache
-        console.log('⚠️ Total changed, refreshing cache:', { oldTotal: cached.total, newTotal: total });
+        console.log('⚠️ totalTTL expired, refreshing cache:', { oldTotal: cached.total });
+        // console.log('⚠️ Total changed, refreshing cache:', { oldTotal: cached.total, newTotal: total });
         const feedData = await fetchFeedData(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset);
         total = feedData.total;
         resultsRows = feedData.rows;
@@ -180,7 +183,7 @@ export async function GET(request: Request) {
     console.log(`🔗 Active HAFSQL connections after queries: ${hafDb.getActiveConnections()}`);
 
   } catch (hafError) {
-    console.warn('⚠️ HAFSQL failed, falling back to HiveSQL:', hafError);
+    // console.warn('⚠️ HAFSQL failed, falling back to HiveSQL:', hafError);
     console.error('⚠️ Failed to fetch data from HAFSQL:', {
       error: hafError,
       activeConnections: hafDb ? hafDb.getActiveConnections() : 'N/A',
