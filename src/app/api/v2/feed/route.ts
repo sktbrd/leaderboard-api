@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { normalizePost, Comment } from './helpers';
 
+const hafDb = new HAFSQL_Database();
+
 // Module-level cache (limited effectiveness in Vercel)
 const cache: Map<string, { total?: number; rows?: Comment[]; timestamp: number }> = new Map();
-const cacheTTL = 120000; // 5 minutes for main query results
-const totalTTL = 120000; // 1 minute for total
+const cacheTTL = 300000; // 5 minutes for main query results
+const totalTTL = 60000; // 1 minute for total
 
 function cleanupCache() {
   const now = Date.now();
@@ -141,10 +143,10 @@ export async function GET(request: Request) {
 
   let resultsRows: Comment[] = [];
   let total = 0;
-  let hafDb: HAFSQL_Database | null = null;
+  // let hafDb: HAFSQL_Database | null = null;
 
   try {
-    hafDb = new HAFSQL_Database();
+    // hafDb = new HAFSQL_Database();
     console.log(`🔗 Active HAFSQL connections: ${hafDb.getActiveConnections()}`);
 
     cleanupCache();
@@ -202,10 +204,6 @@ export async function GET(request: Request) {
         prevPage: null,
       },
     }, { status: 500 });
-  } finally {
-    if (hafDb) {
-      await hafDb.close();
-    }
   }
 
   return NextResponse.json({
