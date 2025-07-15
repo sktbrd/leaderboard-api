@@ -9,24 +9,19 @@ import { getLeaderboard } from './supabase/getLeaderboard';
 import { matchAndUpsertDonors } from './ethereum/giveth';
 
 // Helper function to fetch posts and snaps scores from APIs
-async function fetchPostsAndSnaps(hive_author: string) {
-  try {
-    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
-    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
-    
-    const postsData = await postsResponse.json();
-    const snapsData = await snapsResponse.json();
+async function fetchPostsAndSnaps(hive_author: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
+  const POST_SCORE_MULTIPLIER = 10; // Higher influence for posts
+  const SNAP_SCORE_MULTIPLIER = 3;  // Lower influence for snaps
+  const MAX_SNAPS = 50; // Cap snaps to prevent spamming
 
+  try {
     const posts = postsData.rows.find((row: { user: string; }) => row.user === hive_author) || { score: 0, snaps: 0 };
     const snaps = snapsData.rows.find((row: { user: string; }) => row.user === hive_author) || { score: 0, snaps: 0 };
 
-    const POST_SCORE_MULTIPLIER = 10; // Higher influence for posts
-    const SNAP_SCORE_MULTIPLIER = 3;  // Lower influence for snaps
-    const MAX_SNAPS = 50; // Cap snaps to prevent spamming
 
     const weekly_snaps = Math.min(parseInt(snaps.snaps, 10) || 0, MAX_SNAPS);
-    const combined_score = 
-      (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER + 
+    const combined_score =
+      (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER +
       (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weekly_snaps / (snaps.snaps || 1));
 
     return {
@@ -89,6 +84,11 @@ export const fetchAndStorePartialData = async () => {
     const subscribers = await fetchSubscribers(community);
     const databaseData = await getLeaderboard();
 
+    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
+    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+    const postsData = await postsResponse.json();
+    const snapsData = await snapsResponse.json();
+
     // Find the 100 oldest subscribers by `last_updated`
     const lastUpdatedData = databaseData
       .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
@@ -106,7 +106,7 @@ export const fetchAndStorePartialData = async () => {
       await Promise.all(
         batch.map(async (subscriber) => {
           try {
-            await fetchAndUpsertAccountData(subscriber);
+            await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
           } catch (error) {
             logWithColor(`Failed to process ${subscriber.hive_author}: ${error}`, 'red');
           }
@@ -132,7 +132,7 @@ export const fetchAndStorePartialData = async () => {
 
 
 // Helper function to fetch and upsert account data for each subscriber
-export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }) => {
+export const fetchAndUpsertAccountData = async (subscriber: { hive_author: string }, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) => {
   const { hive_author } = subscriber;
 
   try {
@@ -166,7 +166,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
     }
 
-    const { post_count } = await fetchPostsAndSnaps(hive_author);
+    const { post_count } = await fetchPostsAndSnaps(hive_author, postsData, snapsData);
 
     const accountData = {
       hive_author: accountInfo.name,
@@ -339,6 +339,12 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
   try {
     logWithColor('Starting to fetch and store all data...', 'blue');
 
+    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
+    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+    const postsData = await postsResponse.json();
+    const snapsData = await snapsResponse.json();
+
+
     const subscribers = await fetchSubscribers(community);
     // dummy xvlad subscriber 
     // const subscribers = [{ hive_author: 'xvlad' }];
@@ -357,7 +363,7 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
       await Promise.all(
         batch.map(async (subscriber) => {
           try {
-            await fetchAndUpsertAccountData(subscriber);
+            await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
           } catch (error) {
             logWithColor(`Failed to process subscriber ${subscriber.hive_author}: ${error}`, 'red');
           }
