@@ -35,7 +35,7 @@ async function fetchFeedData(
   const tagFilter = `{"tags": ["${community}"]}`;
 
   // Fetch total
-  console.time('HAFSQL COUNT Query');
+  console.time('⏱️ HAFSQL COUNT Query');
   const totalResult = await hafDb.executeQuery(`
     SELECT COUNT(*) AS total
     FROM comments c
@@ -55,7 +55,7 @@ async function fetchFeedData(
       { name: 'parent_permlink', value: parentPermlink },
     ]
   );
-  console.timeEnd('HAFSQL COUNT Query');
+  console.timeEnd('⏱️ HAFSQL COUNT Query');
   const total = parseInt(totalResult.rows[0].total, 10);
 
   // Fetch main query
@@ -149,7 +149,7 @@ export async function GET(request: Request) {
       resultsRows = cached.rows || [];
       console.log('📁 Using cached rows:', { rowCount: resultsRows.length });
 
-      console.time('HAFSQL COUNT Query (Cache Verify)');
+      console.time('⏱️ HAFSQL COUNT Query (Cache Verify)');
       const totalResult = await hafDb.executeQuery(`
         SELECT COUNT(*) AS total
         FROM comments c
@@ -169,7 +169,7 @@ export async function GET(request: Request) {
           { name: 'parent_permlink', value: PARENT_PERMLINK },
         ]
       );
-      console.timeEnd('HAFSQL COUNT Query (Cache Verify)');
+      console.timeEnd('⏱️ HAFSQL COUNT Query (Cache Verify)');
 
       total = parseInt(totalResult.rows[0].total, 10);
       if (total !== cached.total && Date.now() - cached.timestamp > totalTTL) {
