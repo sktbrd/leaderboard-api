@@ -4,8 +4,8 @@ import { normalizePost, Comment } from './helpers';
 
 // Module-level cache (limited effectiveness in Vercel)
 const cache: Map<string, { total?: number; rows?: Comment[]; timestamp: number }> = new Map();
-const cacheTTL = 300000; // 5 minutes for main query results
-const totalTTL = 60000; // 1 minute for total
+const cacheTTL = 120000; // 5 minutes for main query results
+const totalTTL = 120000; // 1 minute for total
 
 function cleanupCache() {
   const now = Date.now();
