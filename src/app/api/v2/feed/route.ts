@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { normalizePost, Comment } from './helpers';
 
+const hafDb = new HAFSQL_Database();
+
 // Module-level cache (limited effectiveness in Vercel)
 const cache: Map<string, { total?: number; rows?: Comment[]; timestamp: number }> = new Map();
-const cacheTTL = 300000;  // 5 minutes for main query results
-const totalTTL = 60000;   // 1 minute for total
+const activeUpdates = new Set<string>(); // Track ongoing background updates
+const cacheTTL = 300000; // 5 minutes for main query results
+const totalTTL = 60000; // 1 minute for total
 
 function cleanupCache() {
   const now = Date.now();
@@ -25,18 +28,15 @@ interface FeedData {
   rows: Comment[];
 }
 
-async function fetchFeedData(
+async function fetchTotal(
   hafDb: HAFSQL_Database,
   community: string,
-  parentPermlink: string,
-  limit: number,
-  offset: number
-): Promise<FeedData> {
+  parentPermlink: string
+): Promise<number> {
   const tagFilter = `{"tags": ["${community}"]}`;
-
-  // Fetch total
-  console.time('HAFSQL COUNT Query');
-  const totalResult = await hafDb.executeQuery(`
+  console.time('⏱️ HAFSQL COUNT Query');
+  const totalResult = await hafDb.executeQuery(
+    `
     SELECT COUNT(*) AS total
     FROM comments c
     WHERE 
@@ -55,12 +55,23 @@ async function fetchFeedData(
       { name: 'parent_permlink', value: parentPermlink },
     ]
   );
-  console.timeEnd('HAFSQL COUNT Query');
-  const total = parseInt(totalResult.rows[0].total, 10);
+  console.timeEnd('⏱️ HAFSQL COUNT Query');
+  return parseInt(totalResult.rows[0].total, 10);
+}
 
-  // Fetch main query
+async function fetchFeedData(
+  hafDb: HAFSQL_Database,
+  community: string,
+  parentPermlink: string,
+  limit: number,
+  offset: number
+): Promise<FeedData> {
+  const tagFilter = `{"tags": ["${community}"]}`;
+  const total = await fetchTotal(hafDb, community, parentPermlink);
+
   console.time('HAFSQL Main Query');
-  const hafRows = await hafDb.executeQuery(`
+  const hafRows = await hafDb.executeQuery(
+    `
     SELECT 
       c.body, c.author, c.permlink, c.parent_author, c.parent_permlink, 
       c.created, c.last_edited, c.cashout_time, c.remaining_till_cashout, c.last_payout, 
@@ -92,9 +103,9 @@ async function fetchFeedData(
     WHERE 
       (
         (
-            c.parent_author = 'peak.snaps'
-            AND c.parent_permlink SIMILAR TO 'snap-container-%'
-            AND c.json_metadata @> @tag_filter
+          c.parent_author = 'peak.snaps'
+          AND c.parent_permlink SIMILAR TO 'snap-container-%'
+          AND c.json_metadata @> @tag_filter
         )
         OR c.parent_permlink = @parent_permlink
       )
@@ -122,6 +133,35 @@ async function fetchFeedData(
   return { total, rows };
 }
 
+async function updateCacheInBackground(
+  hafDb: HAFSQL_Database,
+  community: string,
+  parentPermlink: string,
+  limit: number,
+  offset: number,
+  cacheKey: string
+) {
+  if (activeUpdates.has(cacheKey)) {
+    console.log('Skipping duplicate background update for:', cacheKey);
+    return;
+  }
+  activeUpdates.add(cacheKey);
+  try {
+    console.log('Starting background cache update for:', cacheKey);
+    const feedData = await fetchFeedData(hafDb, community, parentPermlink, limit, offset);
+    cache.set(cacheKey, { total: feedData.total, rows: feedData.rows, timestamp: Date.now() });
+    console.log('Background cache update completed:', cacheKey);
+  } catch (error) {
+    console.error('Background cache update failed:', {
+      cacheKey,
+      error,
+      activeConnections: hafDb.getActiveConnections(),
+    });
+  } finally {
+    activeUpdates.delete(cacheKey);
+  }
+}
+
 export async function GET(request: Request) {
   console.log('Fetching MAIN FEED data...');
 
@@ -133,71 +173,54 @@ export async function GET(request: Request) {
 
   let resultsRows: Comment[] = [];
   let total = 0;
-  let hafDb: HAFSQL_Database | null = null;
 
   try {
-    hafDb = new HAFSQL_Database();
     console.log(`🔗 Active HAFSQL connections: ${hafDb.getActiveConnections()}`);
-
     cleanupCache();
 
     const cacheKey = `feed:${COMMUNITY}:${PARENT_PERMLINK}:${page}:${limit}`;
-    let cached = cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
 
-    if (cached && Date.now() - cached.timestamp <= cacheTTL) {
-      // Cache hit: Use cached rows, but verify total
+    if (cached) {
       resultsRows = cached.rows || [];
+      total = cached.total || 0;
       console.log('📁 Using cached rows:', { rowCount: resultsRows.length });
-
-      console.time('HAFSQL COUNT Query (Cache Verify)');
-      const totalResult = await hafDb.executeQuery(`
-        SELECT COUNT(*) AS total
-        FROM comments c
-        WHERE 
-          (
-            (
-              c.parent_author = 'peak.snaps' 
-              AND c.parent_permlink SIMILAR TO 'snap-container-%' 
-              AND c.json_metadata @> @tag_filter
-            )
-            OR c.parent_permlink = @parent_permlink
-          )
-          AND c.deleted = false;
-        `,
-        [
-          { name: 'tag_filter', value: `{"tags": ["${COMMUNITY}"]}` },
-          { name: 'parent_permlink', value: PARENT_PERMLINK },
-        ]
-      );
-      console.timeEnd('HAFSQL COUNT Query (Cache Verify)');
-
-      total = parseInt(totalResult.rows[0].total, 10);
-      if (total !== cached.total && Date.now() - cached.timestamp > totalTTL) {
-        // Total changed and TTL for total expired: Refresh cache
-        console.log('⚠️ Total changed, refreshing cache:', { oldTotal: cached.total, newTotal: total });
-        const feedData = await fetchFeedData(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset);
-        total = feedData.total;
-        resultsRows = feedData.rows;
-        cache.set(cacheKey, { total, rows: resultsRows, timestamp: Date.now() });
-      } else {
-        total = cached.total || 0;
-      }
     } else {
-      // Cache miss: Fetch both total and rows
+      console.log('Cache miss, fetching data synchronously');
       const feedData = await fetchFeedData(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset);
       total = feedData.total;
       resultsRows = feedData.rows;
       cache.set(cacheKey, { total, rows: resultsRows, timestamp: Date.now() });
     }
 
-    console.log('✅ Using HAFSQL data');
-    console.log(`🔗 Active HAFSQL connections after queries: ${hafDb.getActiveConnections()}`);
+    // Schedule background cache update
+    setTimeout(() => updateCacheInBackground(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset, cacheKey), 0);
+
+    console.log('✅ Returning response to client');
+    return NextResponse.json({
+      success: true,
+      data: resultsRows,
+      pagination: {
+        currentPage: page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+        nextPage: page * limit < total ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null,
+      },
+    }, {
+      status: 200,
+      headers: {
+        'Cache-Control': 's-maxage=300, stale-while-revalidate=150',
+      },
+    });
 
   } catch (hafError) {
-    console.warn('⚠️ HAFSQL failed, falling back to HiveSQL:', hafError);
     console.error('⚠️ Failed to fetch data from HAFSQL:', {
       error: hafError,
-      activeConnections: hafDb ? hafDb.getActiveConnections() : 'N/A',
+      activeConnections: hafDb.getActiveConnections(),
     });
     return NextResponse.json({
       success: false,
@@ -213,29 +236,5 @@ export async function GET(request: Request) {
         prevPage: null,
       },
     }, { status: 500 });
-  } finally {
-    if (hafDb) {
-      await hafDb.close();
-    }
   }
-
-  return NextResponse.json({
-    success: true,
-    data: resultsRows,
-    pagination: {
-      currentPage: page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      hasNextPage: page * limit < total,
-      hasPrevPage: page > 1,
-      nextPage: page * limit < total ? page + 1 : null,
-      prevPage: page > 1 ? page - 1 : null,
-    },
-  }, {
-    status: 200,
-    headers: {
-      'Cache-Control': 's-maxage=300, stale-while-revalidate=150',
-    },
-  });
 }

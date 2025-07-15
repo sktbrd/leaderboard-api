@@ -5,7 +5,6 @@ interface HAFSQLConfig extends PoolConfig {
   password: string;
   host: string;
   database: string;
-  port?: number;
   max?: number;
   idleTimeoutMillis?: number;
   connectionTimeoutMillis?: number;
@@ -16,21 +15,18 @@ interface QueryInput {
   value: any;
 }
 
-export class HAFSQL_Database {
-  private pool: Pool | null = null;
-  private readonly maxRetries: number = 3;
-  private readonly retryDelay: number = 1000; // 1 second
-  private activeConnections: number = 0;
+let pool: Pool | null = null;
+let activeConnections: number = 0;
 
-  constructor() {
+function initializePool(): Pool {
+  if (!pool) {
     const config: HAFSQLConfig = {
       user: process.env.HAFSQL_USER || '',
       password: process.env.HAFSQL_PWD || '',
       host: process.env.HAFSQL_SERVER || '',
       database: process.env.HAFSQL_DATABASE || '',
-      // port: parseInt(process.env.HAFSQL_PORT || '5432', 10),
       max: 2, // Per admin's recommendation
-      idleTimeoutMillis: 60000, // 60 seconds
+      idleTimeoutMillis: 300000, // 5 minutes
       connectionTimeoutMillis: 30000, // 30 seconds
     };
 
@@ -38,25 +34,35 @@ export class HAFSQL_Database {
       throw new Error('Missing HafSQL environment variables');
     }
 
-    this.pool = new Pool(config);
+    pool = new Pool(config);
 
-    this.pool.on('error', (err) => {
+    pool.on('error', (err) => {
       console.error('PostgreSQL pool error:', err);
     });
 
-    this.pool.on('connect', () => {
-      this.activeConnections++;
-      console.debug(`Connection acquired. Active connections: ${this.activeConnections}`);
+    pool.on('connect', () => {
+      activeConnections++;
+      console.debug(`Connection acquired. Active connections: ${activeConnections}`);
     });
 
-    this.pool.on('remove', () => {
-      this.activeConnections--;
-      console.debug(`Connection released. Active connections: ${this.activeConnections}`);
+    pool.on('remove', () => {
+      activeConnections--;
+      console.debug(`Connection released. Active connections: ${activeConnections}`);
     });
+  }
+  return pool;
+}
+
+export class HAFSQL_Database {
+  private readonly maxRetries: number = 3;
+  private readonly retryDelay: number = 1000; // 1 second
+
+  constructor() {
+    initializePool();
   }
 
   async executeQuery(query: string, inputs: QueryInput[] = []): Promise<QueryResult> {
-    if (!this.pool) {
+    if (!pool) {
       throw new Error('Connection pool not initialized');
     }
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -67,19 +73,14 @@ export class HAFSQL_Database {
           : query;
 
         console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
-        const result = await this.pool.query(text, values);
+        const result = await pool.query(text, values);
         console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
-
-        // if (result.rows.length > 0) {
-        //   console.debug('Sample recordset:', JSON.stringify(result.rows[0], null, 2));
-        // }
-
         return result;
       } catch (error: any) {
         console.error(`Query attempt ${attempt} failed:`, {
           query: query.substring(0, 100) + '...',
           inputs: inputs.map(i => ({ name: i.name, value: i.value })),
-          activeConnections: this.activeConnections,
+          activeConnections,
           error: error.message,
         });
         if (attempt < this.maxRetries && this.isTransientError(error)) {
@@ -102,20 +103,10 @@ export class HAFSQL_Database {
   }
 
   async close() {
-    if (this.pool) {
-      console.log('Closing HAFSQL database connection...');
-      try {
-        await this.pool.end();
-        console.log('HAFSQL database connection closed');
-      } catch (error: any) {
-        console.error('Error closing HAFSQL connection:', error.message);
-      }
-      this.pool = null;
-      this.activeConnections = 0;
-    }
+    // Pool persists until Vercel instance terminates
   }
 
   getActiveConnections(): number {
-    return this.activeConnections;
+    return activeConnections;
   }
 }
