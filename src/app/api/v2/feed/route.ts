@@ -6,6 +6,7 @@ const hafDb = new HAFSQL_Database();
 
 // Module-level cache (limited effectiveness in Vercel)
 const cache: Map<string, { total?: number; rows?: Comment[]; timestamp: number }> = new Map();
+const activeUpdates = new Set<string>(); // Track ongoing background updates
 const cacheTTL = 300000; // 5 minutes for main query results
 const totalTTL = 60000; // 1 minute for total
 
@@ -132,6 +133,35 @@ async function fetchFeedData(
   return { total, rows };
 }
 
+async function updateCacheInBackground(
+  hafDb: HAFSQL_Database,
+  community: string,
+  parentPermlink: string,
+  limit: number,
+  offset: number,
+  cacheKey: string
+) {
+  if (activeUpdates.has(cacheKey)) {
+    console.log('Skipping duplicate background update for:', cacheKey);
+    return;
+  }
+  activeUpdates.add(cacheKey);
+  try {
+    console.log('Starting background cache update for:', cacheKey);
+    const feedData = await fetchFeedData(hafDb, community, parentPermlink, limit, offset);
+    cache.set(cacheKey, { total: feedData.total, rows: feedData.rows, timestamp: Date.now() });
+    console.log('Background cache update completed:', cacheKey);
+  } catch (error) {
+    console.error('Background cache update failed:', {
+      cacheKey,
+      error,
+      activeConnections: hafDb.getActiveConnections(),
+    });
+  } finally {
+    activeUpdates.delete(cacheKey);
+  }
+}
+
 export async function GET(request: Request) {
   console.log('Fetching MAIN FEED data...');
 
@@ -143,52 +173,54 @@ export async function GET(request: Request) {
 
   let resultsRows: Comment[] = [];
   let total = 0;
-  // let hafDb: HAFSQL_Database | null = null;
 
   try {
-    // hafDb = new HAFSQL_Database();
     console.log(`🔗 Active HAFSQL connections: ${hafDb.getActiveConnections()}`);
-
     cleanupCache();
 
     const cacheKey = `feed:${COMMUNITY}:${PARENT_PERMLINK}:${page}:${limit}`;
-    let cached = cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
 
-    if (cached && Date.now() - cached.timestamp <= cacheTTL) {
-      // Cache hit: Use cached rows, but verify total
+    if (cached) {
       resultsRows = cached.rows || [];
+      total = cached.total || 0;
       console.log('📁 Using cached rows:', { rowCount: resultsRows.length });
-
-      // total = await fetchTotal(hafDb, COMMUNITY, PARENT_PERMLINK);
-      if (
-        // total !== cached.total && 
-        Date.now() - cached.timestamp > totalTTL) {
-        // Total changed and TTL for total expired: Refresh cache
-        console.log('⚠️ totalTTL expired, refreshing cache:', { oldTotal: cached.total });
-        // console.log('⚠️ Total changed, refreshing cache:', { oldTotal: cached.total, newTotal: total });
-        const feedData = await fetchFeedData(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset);
-        total = feedData.total;
-        resultsRows = feedData.rows;
-        cache.set(cacheKey, { total, rows: resultsRows, timestamp: Date.now() });
-      } else {
-        total = cached.total || 0;
-      }
     } else {
-      // Cache miss: Fetch both total and rows
+      console.log('Cache miss, fetching data synchronously');
       const feedData = await fetchFeedData(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset);
       total = feedData.total;
       resultsRows = feedData.rows;
       cache.set(cacheKey, { total, rows: resultsRows, timestamp: Date.now() });
     }
 
-    console.log('✅ Using HAFSQL data');
-    console.log(`🔗 Active HAFSQL connections after queries: ${hafDb.getActiveConnections()}`);
+    // Schedule background cache update
+    setTimeout(() => updateCacheInBackground(hafDb, COMMUNITY, PARENT_PERMLINK, limit, offset, cacheKey), 0);
+
+    console.log('✅ Returning response to client');
+    return NextResponse.json({
+      success: true,
+      data: resultsRows,
+      pagination: {
+        currentPage: page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+        nextPage: page * limit < total ? page + 1 : null,
+        prevPage: page > 1 ? page - 1 : null,
+      },
+    }, {
+      status: 200,
+      headers: {
+        'Cache-Control': 's-maxage=300, stale-while-revalidate=150',
+      },
+    });
 
   } catch (hafError) {
-    // console.warn('⚠️ HAFSQL failed, falling back to HiveSQL:', hafError);
     console.error('⚠️ Failed to fetch data from HAFSQL:', {
       error: hafError,
-      activeConnections: hafDb ? hafDb.getActiveConnections() : 'N/A',
+      activeConnections: hafDb.getActiveConnections(),
     });
     return NextResponse.json({
       success: false,
@@ -205,24 +237,4 @@ export async function GET(request: Request) {
       },
     }, { status: 500 });
   }
-
-  return NextResponse.json({
-    success: true,
-    data: resultsRows,
-    pagination: {
-      currentPage: page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      hasNextPage: page * limit < total,
-      hasPrevPage: page > 1,
-      nextPage: page * limit < total ? page + 1 : null,
-      prevPage: page > 1 ? page - 1 : null,
-    },
-  }, {
-    status: 200,
-    headers: {
-      'Cache-Control': 's-maxage=300, stale-while-revalidate=150',
-    },
-  });
 }
