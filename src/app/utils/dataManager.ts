@@ -7,6 +7,8 @@ import { fetchSubscribers } from './hive/fetchSubscribers';
 import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereum/ethereumUtils';
 import { getLeaderboard } from './supabase/getLeaderboard';
 import { matchAndUpsertDonors } from './ethereum/giveth';
+import { fetchCommunityPosts } from '../api/v2/activity/posts/route';
+import { fetchCommunitySnaps } from '../api/v2/activity/snaps/route';
 
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hive_author: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
@@ -84,10 +86,15 @@ export const fetchAndStorePartialData = async () => {
     const subscribers = await fetchSubscribers(community);
     const databaseData = await getLeaderboard();
 
-    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
-    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
-    const postsData = await postsResponse.json();
-    const snapsData = await snapsResponse.json();
+    // const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
+    // const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+    // const postsData = await postsResponse.json();
+    // const snapsData = await snapsResponse.json();
+    const postsData = await fetchCommunityPosts(community, 1, subscribers.length)
+    // console.dir(postsData)
+    const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length)
+    // console.dir(snapsData)
+
 
     // Find the 100 oldest subscribers by `last_updated`
     const lastUpdatedData = databaseData

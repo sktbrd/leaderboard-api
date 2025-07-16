@@ -1,13 +1,15 @@
 import { Asset } from '@hiveio/dhive';
 import { supabase } from '../../utils/supabase/supabaseClient'; // Use the existing Supabase client
 import { logWithColor, fetchAccountInfo, extractEthAddressFromHiveAccount } from '../../utils/hive/hiveUtils';
-import { fetchDelegatedCommunity } from '../../utils/hive/hiveUtils';
+import { fetchDelegatedCommunity } from '../../utils/hive/hiveUtil_hafsql';
 import { DataBaseAuthor } from '../../utils/types';
 import { convertVestingSharesToHivePower, calculateUserVoteValue } from '../../utils/hive/hiveUtils';
 import { fetchSubscribers } from '../../utils/hive/fetchSubscribers';
 import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from '../../utils/ethereum/ethereumUtils';
 import { getLeaderboard } from '../../utils/supabase/getLeaderboard';
 import { matchAndUpsertDonors } from '../../utils/ethereum/giveth';
+import { fetchCommunityPosts } from '../v2/activity/posts/route';
+import { fetchCommunitySnaps } from '../v2/activity/snaps/route';
 
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hive_author: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
@@ -85,10 +87,15 @@ export const fetchAndStorePartialData = async () => {
     const subscribers = await fetchSubscribers(community);
     const databaseData = await getLeaderboard();
 
-    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
-    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
-    const postsData = await postsResponse.json();
-    const snapsData = await snapsResponse.json();
+    // const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
+    // const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+    // const postsData = await postsResponse.json();
+    // const snapsData = await snapsResponse.json();
+    const postsData = await fetchCommunityPosts(community, 1, subscribers.length)
+    // console.dir(postsData)
+    const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length)
+    // console.dir(snapsData)
+
 
     // Find the 100 oldest subscribers by `last_updated`
     const lastUpdatedData = databaseData
@@ -146,7 +153,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     ///
     const CCD = await fetchDelegatedCommunity(hive_author);
     console.log("We will use CCD? " + CCD)
-///
+    ///
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -348,15 +355,22 @@ export const fetchAndStoreAllData = async (): Promise<void> => {
   try {
     logWithColor('Starting to fetch and store all data...', 'blue');
 
-    const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
-    const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
-    const postsData = await postsResponse.json();
-    const snapsData = await snapsResponse.json();
+    // const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
+    // const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+    // const postsData = await postsResponse.json();
+    // const snapsData = await snapsResponse.json();
+
 
 
     const subscribers = await fetchSubscribers(community);
     // dummy xvlad subscriber 
     // const subscribers = [{ hive_author: 'xvlad' }];
+
+    const postsData = await fetchCommunityPosts(community, 1, subscribers.length)
+        // console.dir(postsData)
+        const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length)
+        // console.dir(snapsData)
+        
 
     logWithColor(`Fetched ${subscribers.length} valid subscribers to update.`, 'blue');
 
