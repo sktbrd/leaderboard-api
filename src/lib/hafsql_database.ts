@@ -61,7 +61,7 @@ export class HAFSQL_Database {
     initializePool();
   }
 
-  async executeQuery(query: string, inputs: QueryInput[] = []): Promise<QueryResult> {
+async executeQuery(query: string, inputs: QueryInput[] = []): Promise<{ rows: any[]; headers: string[] }> {
     if (!pool) {
       throw new Error('Connection pool not initialized');
     }
@@ -75,7 +75,12 @@ export class HAFSQL_Database {
         console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
         const result = await pool.query(text, values);
         console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
-        return result;
+
+        return {
+          rows: result.rows,
+          headers: result.fields.map(f => f.name),
+        };
+
       } catch (error: any) {
         console.error(`Query attempt ${attempt} failed:`, {
           query: query.substring(0, 100) + '...',
