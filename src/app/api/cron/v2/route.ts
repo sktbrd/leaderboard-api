@@ -5,15 +5,11 @@ import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 import { NextResponse } from 'next/server';
 import { fetchCommunityPosts } from '../../v2/activity/posts/route';
 import { fetchCommunitySnaps } from '../../v2/activity/snaps/route';
-import { fetchAndUpsertAccountData } from '../dataManager';
-// import { fetchAndStorePartialData } from '@/app/api/cron/dataManager';
+import { calculateAndUpsertPoints, fetchAndUpsertAccountData } from './dataManager';
 
 export async function GET() {
     try {
-        // Call your data fetch and store function
         await updateLeaderboardData();
-
-        // Respond with a success message
         return NextResponse.json({ message: 'Cron job executed successfully.' });
     } catch (error) {
         console.error('Error executing cron job:', error);
@@ -21,49 +17,33 @@ export async function GET() {
     }
 }
 
-
 // Function to fetch and store data for a subset of subscribers
 export const updateLeaderboardData = async () => {
-    console.time("updateLeaderboardData")
+    console.time("updateLeaderboardData");
     const batchSize = 25;
     const community = 'hive-173115';
 
     try {
-        console.time("fetchSubscribers")
+        console.time("fetchSubscribers");
         const subscribers = await fetchSubscribers(community);
         console.warn(`${community} community has ${subscribers.length} subscribers.`);
-        console.timeEnd("fetchSubscribers")
+        console.timeEnd("fetchSubscribers");
 
-        console.time("getLeaderboard")
+        console.time("getLeaderboard");
         const leaderboardData = await getLeaderboard();
         console.warn(`Leaderboard has ${leaderboardData.length} records.`);
-        console.timeEnd("getLeaderboard")
+        console.timeEnd("getLeaderboard");
 
-        // difference are from donator_NO_HIVE_ACCOUNT
-        // Extract hive_author from subscribers for comparison
-        // const subscriberAuthors = new Set(subscribers.map(subscriber => subscriber.hive_author));
-        // Find differences in hive_author between leaderboardData and subscribers
-        // const differences = leaderboardData.filter(data => !subscriberAuthors.has(data.hive_author));
-        // Log the differences
-        // console.log('Differences in hive_author:', differences);
-
-        const postsData = await fetchCommunityPosts(community, 1, subscribers.length)
-        console.dir(postsData)
-        const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length)
-        console.dir(snapsData)
-        
-        //     const postsResponse = await fetch('http://api.skatehive.app/api/v2/activity/posts?limit=2000&offset=0');
-        //     const snapsResponse = await fetch('http://api.skatehive.app/api/v2/activity/snaps?limit=2000&offset=0');
+        const postsData = await fetchCommunityPosts(community, 1, subscribers.length);
+        const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length);
 
         const validSubscribers = leaderboardData.filter(subscriber =>
             subscribers.some(data => data.hive_author === subscriber.hive_author)
         );
 
-        // Find the 100 oldest subscribers by `last_updated`
         const lastUpdatedData = validSubscribers
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
             .slice(0, 100);
-
 
         const totalBatches = Math.ceil(lastUpdatedData.length / batchSize);
 
@@ -72,7 +52,7 @@ export const updateLeaderboardData = async () => {
 
             await Promise.all(
                 batch.map(async (subscriber) => {
-                    console.log(`updating subscriber ${subscriber.hive_author}`)
+                    console.log(`batch ${i}/${batchSize}) updating subscriber ${subscriber.hive_author}`);
                     try {
                         await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
                     } catch (error) {
@@ -84,18 +64,16 @@ export const updateLeaderboardData = async () => {
             logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
         }
 
-        // ✅ Add Giveth Donations Processing Here
         console.time('Fetching and processing Giveth donations...');
         await matchAndUpsertDonors();
         console.timeEnd('Fetching and processing Giveth donations...');
 
-        //     // ✅ Now Calculate Points
-        //     logWithColor('Calculating points for all users...', 'blue');
-        //     await calculateAndUpsertPoints();
+        logWithColor('Calculating points for all users...', 'blue');
+        await calculateAndUpsertPoints();
 
-        //     logWithColor('All data fetched and stored successfully.', 'green');
+        logWithColor('All data fetched and stored successfully.', 'green');
     } catch (error) {
         logWithColor(`Error during data processing: ${error}`, 'red');
     }
-    console.timeEnd("updateLeaderboardData")
+    console.timeEnd("updateLeaderboardData");
 };

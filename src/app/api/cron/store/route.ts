@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchAndStoreAllData } from '@/app/api/cron/dataManager';
+import { fetchAndStoreAllData } from '@/app/api/cron/v2/dataManager';
 import { logWithColor } from '@/app/utils/hive/hiveUtils';
 
 export async function GET(request: Request) {

@@ -72,9 +72,9 @@ async executeQuery(query: string, inputs: QueryInput[] = []): Promise<{ rows: an
           ? query.replace(/@(\w+)/g, (_, name) => `$${inputs.findIndex(i => i.name === name) + 1}`)
           : query;
 
-        console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
+        // console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
         const result = await pool.query(text, values);
-        console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
+        // console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
 
         return {
           rows: result.rows,

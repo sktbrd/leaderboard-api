@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchAndStorePartialData } from '@/app/api/cron/dataManager';
+import { fetchAndStorePartialData } from '@/app/api/cron/v2/dataManager';
 
 export async function GET() {
     try {
