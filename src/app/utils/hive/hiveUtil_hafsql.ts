@@ -35,11 +35,15 @@ export const fetchDelegatedCommunity = async (username: string): Promise<string>
 FROM hafsql.delegations
 where delegator ='${username}' and delegatee = '${COMMUNITY_CURATOR}';`
 
-    const {rows, headers } = await hafDb.executeQuery(query);
-    console.error("NEWS: only delegate to communit curator " 
-        + COMMUNITY_CURATOR 
-        + " = " + rows[0].community_curator_delegation)
-    return rows[0].community_curator_delegation
+    const { rows, headers } = await hafDb.executeQuery(query);
+    if (rows.length > 0) {
+        console.log("NEWS: only delegate to communit curator "
+            + COMMUNITY_CURATOR
+            + " = " + rows[0].community_curator_delegation)
+        return rows[0].community_curator_delegation
+    } else {
+        return "0"
+    }
 }
 
 export const fetchAccountInfo = async (username: string): Promise<ExtendedAccount | null> => {
@@ -279,11 +283,11 @@ export const convertVestingSharesToHivePower = async (
 };
 
 export async function calculateUserVoteValue(user: ExtendedAccount) {
-    const { 
-        voting_power = 0, 
-        vesting_shares = "0.000000 VESTS", 
-        received_vesting_shares = "0.000000 VESTS", 
-        delegated_vesting_shares = "0.000000 VESTS" 
+    const {
+        voting_power = 0,
+        vesting_shares = "0.000000 VESTS",
+        received_vesting_shares = "0.000000 VESTS",
+        delegated_vesting_shares = "0.000000 VESTS"
     } = user || {};
 
     const client = HiveClient;

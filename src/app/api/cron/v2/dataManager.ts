@@ -23,7 +23,7 @@ async function fetchPostsAndSnaps(hiveAuthor: string, postsData: { rows: any[]; 
 
     const weeklySnaps = Math.min(parseInt(snaps.snaps, 10) || 0, MAX_SNAPS);
     const combinedScore = (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER +
-                          (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weeklySnaps / (snaps.snaps || 1));
+      (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weeklySnaps / (snaps.snaps || 1));
 
     return { post_count: Math.round(combinedScore) };
   } catch (error) {
@@ -156,9 +156,11 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     if (eth_address === '0x0000000000000000000000000000000000000000') {
       logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
     } else {
-      gnars_balance = await readGnarsBalance(eth_address);
-      gnars_votes = await readGnarsVotes(eth_address);
-      skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
+      if (process.env.ALCHEMY_API_KEY) {
+        gnars_balance = await readGnarsBalance(eth_address);
+        gnars_votes = await readGnarsVotes(eth_address);
+        skatehive_nft_balance = await readSkatehiveNFTBalance(eth_address);
+      }
     }
 
     const { post_count } = await fetchPostsAndSnaps(hive_author, postsData, snapsData);
@@ -186,6 +188,147 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
   }
 };
+
+// export const calculateAndUpsertPoints = async () => {
+export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
+  try {
+    var leaderboardData = batchUsers; //await getLeaderboard();
+    // console.log("\leaderboardData:")
+    // console.dir(leaderboardData)
+    // console.log("\nbatchUsers:")
+    // console.dir(batchUsers)
+
+    if (!leaderboardData || leaderboardData.length === 0) {
+      logWithColor('No data found in the leaderboard.', 'red');
+      return;
+    }
+
+    const POINT_MULTIPLIERS = {
+      hive_balance: 0.1,
+      hp_balance: 0.5,
+      gnars_votes: 30,
+      skatehive_nft_balance: 50,
+      witness_vote: 1000,
+      hbd_savings_balance: 0.2,
+      post_count: 0.1,
+      max_voting_power_usd: 1000,
+      max_inactivity_penalty: 100,
+      eth_wallet_penalty: -2000,
+      zero_value_penalties: {
+        hive_balance: -1000,
+        hp_balance: -5000,
+        gnars_votes: -300,
+        skatehive_nft_balance: -900,
+        hbd_savings_balance: -200,
+        post_count: -2000,
+      },
+    };
+
+    const CAPS = {
+      hive_balance: 1000,
+      hp_balance: 12000,
+      hbd_balance: 1000,
+      hbd_savings_balance: 1000,
+      post_count: 3000,
+    };
+
+    const capValue = (value: number, cap: number) => Math.min(value, cap);
+
+    const updatedData = leaderboardData.map(user => {
+      const {
+        hive_balance = 0,
+        hp_balance = 0,
+        gnars_votes = 0,
+        skatehive_nft_balance = 0,
+        has_voted_in_witness = false,
+        hbd_savings_balance = 0,
+        post_count = 0,
+        max_voting_power_usd = 0,
+        eth_address = null,
+        last_post,
+        points: currentPoints = 0,
+      } = user;
+
+      const donationUSD = user.giveth_donations_usd ?? 0;
+      const donationPoints = Math.min(donationUSD, 1000) * 5;
+
+      const cappedHiveBalance = capValue(hive_balance, CAPS.hive_balance);
+      const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
+      const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
+      const cappedPostCount = capValue(post_count, CAPS.post_count);
+
+      const daysSinceLastPost = last_post
+        ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
+        : POINT_MULTIPLIERS.max_inactivity_penalty;
+
+      const hasValidEthWallet = eth_address && eth_address !== '0x0000000000000000000000000000000000000000';
+
+      const ethWalletBonus = (hasValidEthWallet && !user.hive_author.toLowerCase().startsWith('donator')) ? 5000 : 0;
+      const ethWalletPenalty = !hasValidEthWallet ? POINT_MULTIPLIERS.eth_wallet_penalty : 0;
+
+      const zeroValuePenalties = [
+        { value: hive_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hive_balance },
+        { value: hp_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hp_balance },
+        { value: gnars_votes, penalty: POINT_MULTIPLIERS.zero_value_penalties.gnars_votes },
+        { value: skatehive_nft_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.skatehive_nft_balance },
+        { value: hbd_savings_balance, penalty: POINT_MULTIPLIERS.zero_value_penalties.hbd_savings_balance },
+        { value: post_count, penalty: POINT_MULTIPLIERS.zero_value_penalties.post_count },
+      ].reduce((acc, { value, penalty }) => acc + (value === 0 ? penalty : 0), 0);
+
+      const points =
+        (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance) +
+        (cappedHpBalance * POINT_MULTIPLIERS.hp_balance) +
+        (gnars_votes * POINT_MULTIPLIERS.gnars_votes) +
+        (skatehive_nft_balance * POINT_MULTIPLIERS.skatehive_nft_balance) +
+        (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : 0) +
+        (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
+        (cappedPostCount * POINT_MULTIPLIERS.post_count) +
+        (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) +
+        ethWalletBonus +
+        ethWalletPenalty -
+        Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
+        donationPoints +
+        zeroValuePenalties;
+
+      return {
+        ...user,
+        points: Math.max(points, 0),
+        hasUpdatedPoints: currentPoints !== Math.max(points, 0),
+      };
+    });
+
+    const usersToUpdate = updatedData.filter(user => user.hasUpdatedPoints);
+    if (usersToUpdate.length === 0) {
+      logWithColor('No changes in points detected. Skipping updates.', 'yellow');
+      return usersToUpdate.length;
+    }
+
+    console.log(`leaderboardData users = ${leaderboardData.length}`)
+    console.log(`users to update = ${usersToUpdate.length}`)
+
+    const { error } = await supabase
+      .from('leaderboard')
+      .upsert(
+        usersToUpdate.map(({ hive_author, points, post_count }) => ({
+          hive_author,
+          points,
+          post_count,
+        })),
+        { onConflict: 'hive_author' }
+      );
+
+    if (error) {
+      logWithColor(`Failed to batch update points: ${error.message}`, 'red');
+    } else {
+      logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+    }
+
+    return usersToUpdate;
+  } catch (error) {
+    logWithColor(`Error in calculateAndUpsertPointsBatch: ${(error as Error).message}`, 'red');
+  }
+
+}
 
 // Function to calculate and update points for all users
 export const calculateAndUpsertPoints = async () => {

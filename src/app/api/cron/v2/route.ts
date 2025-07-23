@@ -5,12 +5,12 @@ import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 import { NextResponse } from 'next/server';
 import { fetchCommunityPosts } from '../../v2/activity/posts/route';
 import { fetchCommunitySnaps } from '../../v2/activity/snaps/route';
-import { calculateAndUpsertPoints, fetchAndUpsertAccountData } from './dataManager';
+import { calculateAndUpsertPoints, calculateAndUpsertPointsBatch, fetchAndUpsertAccountData } from './dataManager';
 
 export async function GET() {
     try {
-        await updateLeaderboardData();
-        return NextResponse.json({ message: 'Cron job executed successfully.' });
+        const updatedUsers = await updateLeaderboardData();
+        return NextResponse.json({ message: 'Cron job executed successfully.', updatedUsers: updatedUsers });
     } catch (error) {
         console.error('Error executing cron job:', error);
         return NextResponse.json({ error: 'Failed to execute cron job.' }, { status: 500 });
@@ -45,35 +45,38 @@ export const updateLeaderboardData = async () => {
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
             .slice(0, 100);
 
-        const totalBatches = Math.ceil(lastUpdatedData.length / batchSize);
+        // const totalBatches = Math.ceil(lastUpdatedData.length / batchSize);
 
-        for (let i = 0; i < totalBatches; i++) {
-            const batch = lastUpdatedData.slice(i * batchSize, (i + 1) * batchSize);
+        const batch = lastUpdatedData.slice(0, batchSize);
 
-            await Promise.all(
-                batch.map(async (subscriber) => {
-                    console.log(`batch ${i}/${batchSize}) updating subscriber ${subscriber.hive_author}`);
-                    try {
-                        await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
-                    } catch (error) {
-                        logWithColor(`Failed to process ${subscriber.hive_author}: ${error}`, 'red');
-                    }
-                })
-            );
-
-            logWithColor(`Processed batch ${i + 1} of ${totalBatches}.`, 'cyan');
-        }
+        await Promise.all(
+            batch.map(async (subscriber) => {
+                console.log(`updating subscriber ${subscriber.hive_author}`);
+                try {
+                    await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
+                } catch (error) {
+                    logWithColor(`Failed to process ${subscriber.hive_author}: ${error}`, 'red');
+                }
+            })
+        );
 
         console.time('Fetching and processing Giveth donations...');
         await matchAndUpsertDonors();
         console.timeEnd('Fetching and processing Giveth donations...');
 
-        logWithColor('Calculating points for all users...', 'blue');
-        await calculateAndUpsertPoints();
+        logWithColor('Calculating points for batch users...', 'blue');
+        const updatedUsers = await calculateAndUpsertPointsBatch(batch);
+
+
+        // logWithColor('Calculating points for all users...', 'blue');
+        // await calculateAndUpsertPoints();
 
         logWithColor('All data fetched and stored successfully.', 'green');
+        return updatedUsers;
     } catch (error) {
         logWithColor(`Error during data processing: ${error}`, 'red');
     }
-    console.timeEnd("updateLeaderboardData");
+    finally {
+        console.timeEnd("updateLeaderboardData");
+    }
 };
