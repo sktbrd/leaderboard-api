@@ -11,6 +11,36 @@ import { matchAndUpsertDonors } from '../../../utils/ethereum/giveth';
 import { fetchCommunityPosts } from '../../v2/activity/posts/route';
 import { fetchCommunitySnaps } from '../../v2/activity/snaps/route';
 
+const POINT_MULTIPLIERS = {
+  hive_balance: 0.1,
+  hp_balance: 0.5,
+  gnars_votes: 30,
+  skatehive_nft_balance: 50,
+  witness_vote: 1000,
+  hbd_savings_balance: 0.2,
+  post_count: 0.1,
+  max_voting_power_usd: 1000,
+  max_inactivity_penalty: 100,
+  eth_wallet_penalty: -2000,
+  zero_value_penalties: {
+    hive_balance: -1000,
+    hp_balance: -5000,
+    gnars_votes: -300,
+    skatehive_nft_balance: -900,
+    hbd_savings_balance: -200,
+    post_count: -2000,
+  },
+};
+
+const CAPS = {
+  hive_balance: 1000,
+  hp_balance: 12000,
+  hbd_balance: 1000,
+  hbd_savings_balance: 1000,
+  post_count: 1,
+};
+
+
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
   const POST_SCORE_MULTIPLIER = 10;
@@ -136,7 +166,8 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     }
 
     const CCD = await fetchDelegatedCommunity(hive_author);
-    console.log("We will use CCD? " + CCD);
+    if (parseInt(CCD) > 0)
+      console.log("We will use CCD? " + CCD);
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -203,34 +234,6 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
       return;
     }
 
-    const POINT_MULTIPLIERS = {
-      hive_balance: 0.1,
-      hp_balance: 0.5,
-      gnars_votes: 30,
-      skatehive_nft_balance: 50,
-      witness_vote: 1000,
-      hbd_savings_balance: 0.2,
-      post_count: 0.1,
-      max_voting_power_usd: 1000,
-      max_inactivity_penalty: 100,
-      eth_wallet_penalty: -2000,
-      zero_value_penalties: {
-        hive_balance: -1000,
-        hp_balance: -5000,
-        gnars_votes: -300,
-        skatehive_nft_balance: -900,
-        hbd_savings_balance: -200,
-        post_count: -2000,
-      },
-    };
-
-    const CAPS = {
-      hive_balance: 1000,
-      hp_balance: 12000,
-      hbd_balance: 1000,
-      hbd_savings_balance: 1000,
-      post_count: 3000,
-    };
 
     const capValue = (value: number, cap: number) => Math.min(value, cap);
 
