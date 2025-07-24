@@ -7,11 +7,15 @@ export async function GET(req: NextRequest) {
     const method = searchParams.get('method');
 
     if (!address) {
-        return NextResponse.json({ error: 'Address is required' }, { status: 400 });
+        return NextResponse.json({ 
+            error: 'Address is required' 
+        }, { status: 400 });
     }
 
     if (!method) {
-        return NextResponse.json({ error: 'Method is required' }, { status: 400 });
+        return NextResponse.json({ 
+            error: 'Method is required' 
+        }, { status: 400 });
     }
 
     try {

@@ -107,24 +107,28 @@ export const matchAndUpsertDonors = async () => {
       userDonation.giveth_donations_usd = Math.round(userDonation.giveth_donations_usd * 100) / 100;
     }
     // Convert map values to an array
-    const upsertData = Array.from(donationAggregation.values()).map(({ hive_author, eth_address, giveth_donations_usd, giveth_donations_amount }) => ({
-      hive_author,
-      eth_address,
-      giveth_donations_usd,
-      giveth_donations_amount
-    })); // 🚨 `id` is NOT included here
+    const upsertData = Array
+      .from(donationAggregation.values())
+      .map(({ hive_author, eth_address, giveth_donations_usd, giveth_donations_amount }) => ({
+          hive_author,
+          eth_address,
+          giveth_donations_usd,
+          giveth_donations_amount
+        })); // 🚨 `id` is NOT included here
 
     // ✅ Bulk upsert aggregated data
     if (upsertData.length > 0) {
-      const { error } = await supabase.from('leaderboard').upsert(upsertData, { onConflict: 'hive_author' });
-      if (error) logWithColor(`Error inserting/updating donors: ${error.message}`, 'red');
-      else logWithColor(`Successfully upserted ${upsertData.length} donors.`, 'green');
+      const { error } = await supabase.from('leaderboard')
+                                      .upsert(upsertData, { 
+                                        onConflict: 'hive_author' 
+                                      });
+
+      if (error) 
+        logWithColor(`Error inserting/updating donors: ${error.message}`, 'red');
+      else 
+        logWithColor(`Successfully upserted ${upsertData.length} donors.`, 'green');
     }
   } catch (error) {
     logWithColor(`Error in matchAndUpsertDonors: ${error}`, 'red');
   }
 };
-
-
-
-
