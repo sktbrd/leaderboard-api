@@ -136,9 +136,9 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       return;
     }
 
-    const CCD = await fetchDelegatedCommunity(hive_author);
-    if (parseInt(CCD) > 0)
-      logWithColor("We will use CCD? " + CCD, 'red');
+    const delegatedCommunity = await fetchDelegatedCommunity(hive_author);
+    if (parseInt(delegatedCommunity) > 0)
+      logWithColor("We will use CCD? " + delegatedCommunity, 'red');
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -235,6 +235,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     hp_balance: 0.5,
     gnars_votes: 30,
     skatehive_nft_balance: 50,
+    gnars_balance: 5, // Added for Gnars NFTs (5 points per NFT)
     witness_vote: 1000,
     hbd_savings_balance: 0.2,
     post_count: 0.1,
@@ -246,8 +247,8 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     zero_value_penalties: {
       hive_balance: -1000,
       hp_balance: -5000,
-      gnars_votes: -300,
-      skatehive_nft_balance: -900,
+      gnars_votes: 0,
+      skatehive_nft_balance: 0,
       hbd_savings_balance: -200,
       post_count: -2000,
       no_witness: -3500,
@@ -256,10 +257,13 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
 
   const CAPS = {
     hive_balance: 1000,
-    hp_balance: 12000,
+    hp_balance: 10000,
     hbd_balance: 1000,
     hbd_savings_balance: 1000,
     post_count: 1,
+    skatehive_nft_balance: 20, // Cap at 20 NFTs for 1,000 points
+    gnars_balance: 100, // Cap at 100 Gnars NFTs for 500 points
+
   };
 
   const calculateInactivityPenalty = (last_post: string | number | Date) => {
@@ -300,6 +304,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         hp_balance = 0,
         gnars_votes = 0,
         skatehive_nft_balance = 0,
+        gnars_balance = 0, // Added for Gnars NFTs
         has_voted_in_witness = false,
         hbd_savings_balance = 0,
         post_count = 0,
@@ -316,6 +321,8 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
       const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
       const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
       const cappedPostCount = capValue(post_count, CAPS.post_count);
+      const cappedSkatehiveNFTBalance = capValue(skatehive_nft_balance, CAPS.skatehive_nft_balance);
+      const cappedGnarsBalance = capValue(gnars_balance, CAPS.gnars_balance);
 
       // const daysSinceLastPost = last_post
       //   ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
@@ -336,20 +343,30 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         { value: post_count, penalty: POINT_MULTIPLIERS.zero_value_penalties.post_count },
       ].reduce((acc, { value, penalty }) => acc + (value === 0 ? penalty : 0), 0);
 
+      // Calculate Skatehive NFT bonus
+      let skatehiveNFTPoints = cappedSkatehiveNFTBalance * POINT_MULTIPLIERS.skatehive_nft_balance;
+      if (skatehive_nft_balance >= 100) {
+        skatehiveNFTPoints = 1000; // Bonus for 100+ NFTs
+      } else if (skatehive_nft_balance >= 50) {
+        skatehiveNFTPoints = 500; // Bonus for 50+ NFTs
+      }
+
       const points = Math.round(
-        (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance) +
-        (cappedHpBalance * POINT_MULTIPLIERS.hp_balance) +
-        (gnars_votes * POINT_MULTIPLIERS.gnars_votes) +
-        (skatehive_nft_balance * POINT_MULTIPLIERS.skatehive_nft_balance) +
-        (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : POINT_MULTIPLIERS.zero_value_penalties.no_witness) +
-        (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
-        (cappedPostCount * POINT_MULTIPLIERS.post_count) +
-        (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) +
-        ethWalletBonus +
-        ethWalletPenalty -
-        inactivityPenalty +
-        donationPoints +
-        zeroValuePenalties
+        + (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance)
+        + (cappedHpBalance * POINT_MULTIPLIERS.hp_balance)
+        + (gnars_votes * POINT_MULTIPLIERS.gnars_votes)
+        + skatehiveNFTPoints // Use bonus-modified points
+        + (cappedGnarsBalance * POINT_MULTIPLIERS.gnars_balance) // Added for Gnars NFTs
+        + (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : POINT_MULTIPLIERS.zero_value_penalties.no_witness)
+        + (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance)
+        + (cappedPostCount * POINT_MULTIPLIERS.post_count)
+        + (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd)
+        + ethWalletBonus
+        + ethWalletPenalty
+        + donationPoints
+        + zeroValuePenalties 
+        - inactivityPenalty
+        // delegatedCommunity
       );
 
       if (Math.round(currentPoints) !== Math.max(points, 0)) {
