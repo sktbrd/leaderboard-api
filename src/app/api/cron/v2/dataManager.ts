@@ -11,41 +11,12 @@ import { matchAndUpsertDonors } from '../../../utils/ethereum/giveth';
 import { fetchCommunityPosts } from '../../v2/activity/posts/route';
 import { fetchCommunitySnaps } from '../../v2/activity/snaps/route';
 
-const POINT_MULTIPLIERS = {
-  hive_balance: 0.1,
-  hp_balance: 0.5,
-  gnars_votes: 30,
-  skatehive_nft_balance: 50,
-  witness_vote: 1000,
-  hbd_savings_balance: 0.2,
-  post_count: 0.1,
-  max_voting_power_usd: 1000,
-  max_inactivity_penalty: 100,
-  eth_wallet_penalty: -2000,
-  zero_value_penalties: {
-    hive_balance: -1000,
-    hp_balance: -5000,
-    gnars_votes: -300,
-    skatehive_nft_balance: -900,
-    hbd_savings_balance: -200,
-    post_count: -2000,
-  },
-};
-
-const CAPS = {
-  hive_balance: 1000,
-  hp_balance: 12000,
-  hbd_balance: 1000,
-  hbd_savings_balance: 1000,
-  post_count: 1,
-};
-
 
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
-  const POST_SCORE_MULTIPLIER = 10;
-  const SNAP_SCORE_MULTIPLIER = 3;
-  const MAX_SNAPS = 50;
+  const POST_SCORE_MULTIPLIER = 27;
+  const SNAP_SCORE_MULTIPLIER = 10;
+  const MAX_SNAPS = 20;
 
   try {
     const posts = postsData.rows.find(row => row.user === hiveAuthor) || { score: 0, snaps: 0 };
@@ -167,7 +138,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
 
     const CCD = await fetchDelegatedCommunity(hive_author);
     if (parseInt(CCD) > 0)
-      console.log("We will use CCD? " + CCD);
+      logWithColor("We will use CCD? " + CCD, 'red');
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -196,6 +167,42 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
 
     const { post_count } = await fetchPostsAndSnaps(hive_author, postsData, snapsData);
 
+    if (post_count > 0) {
+      // just debug info
+      interface UserPostStats {
+        snaps: number;
+        posts: number;
+      }
+
+      const userPostSummary: Record<string, UserPostStats> = {};
+      // Combine all users from snapsData and postsData
+      const combinedUsers = [
+        ...snapsData.rows.map(item => ({ user: item.user, type: 'snap', count: Number(item.snaps) })),
+        ...postsData.rows.map(item => ({ user: item.user, type: 'post', count: Number(item.posts) })),
+      ];
+
+      // Aggregate counts per user
+      // const userPostSummary = {};
+
+      combinedUsers.forEach(({ user, type, count }) => {
+        if (!userPostSummary[user]) {
+          userPostSummary[user] = { snaps: 0, posts: 0 };
+        }
+
+        if (type === 'snap') userPostSummary[user].snaps += count;
+        if (type === 'post') userPostSummary[user].posts += count;
+      });
+
+      // Log post info for each user
+      Object.entries(userPostSummary).forEach(([user, { snaps, posts }]) => {
+        const total = snaps + posts;
+        logWithColor(`User ${user} has ${posts} posts, ${snaps} snaps, total: ${total}`, 'yellow');
+      });
+
+      // Optionally compare to post_count
+      logWithColor(`Fetched post_count from Hive for ${hive_author}: ${post_count}`, 'yellow');
+    }
+
     const accountData = {
       hive_author: accountInfo.name,
       hive_balance: parseFloat((accountInfo.balance as Asset).toString().split(" ")[0]),
@@ -222,11 +229,61 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
 
 // export const calculateAndUpsertPoints = async () => {
 export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
+
+  const POINT_MULTIPLIERS = {
+    hive_balance: 0.1,
+    hp_balance: 0.5,
+    gnars_votes: 30,
+    skatehive_nft_balance: 50,
+    witness_vote: 1000,
+    hbd_savings_balance: 0.2,
+    post_count: 0.1,
+    max_voting_power_usd: 1000,
+    max_inactivity_penalty1: 100, // 1+ month
+    max_inactivity_penalty2: 1000, // 2+ months
+    max_inactivity_penalty3: 6000, // 3+ months
+    eth_wallet_penalty: -2000,
+    zero_value_penalties: {
+      hive_balance: -1000,
+      hp_balance: -5000,
+      gnars_votes: -300,
+      skatehive_nft_balance: -900,
+      hbd_savings_balance: -200,
+      post_count: -2000,
+      no_witness: -3500,
+    },
+  };
+
+  const CAPS = {
+    hive_balance: 1000,
+    hp_balance: 12000,
+    hbd_balance: 1000,
+    hbd_savings_balance: 1000,
+    post_count: 1,
+  };
+
+  const calculateInactivityPenalty = (last_post: string | number | Date) => {
+    if (!last_post) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty3; // 100 points penalty for no last post
+    }
+
+    const daysSinceLastPost = Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceLastPost >= 90) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty3; // 100 points for 3+ months
+    } else if (daysSinceLastPost >= 60) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty2; // 75 points for 2+ months
+    } else if (daysSinceLastPost >= 30) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty1; // 50 points for 1+ month
+    }
+    return 0; // No penalty if last post is within 30 days
+  };
+
   try {
     var leaderboardData = batchUsers; //await getLeaderboard();
-    // console.log("\leaderboardData:")
+    // logWithColor("\leaderboardData:")
     // console.dir(leaderboardData)
-    // console.log("\nbatchUsers:")
+    // logWithColor("\nbatchUsers:")
     // console.dir(batchUsers)
 
     if (!leaderboardData || leaderboardData.length === 0) {
@@ -260,9 +317,10 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
       const cappedHbdSavingsBalance = capValue(hbd_savings_balance, CAPS.hbd_savings_balance);
       const cappedPostCount = capValue(post_count, CAPS.post_count);
 
-      const daysSinceLastPost = last_post
-        ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
-        : POINT_MULTIPLIERS.max_inactivity_penalty;
+      // const daysSinceLastPost = last_post
+      //   ? Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24))
+      //   : POINT_MULTIPLIERS.max_inactivity_penalty;
+      const inactivityPenalty = calculateInactivityPenalty(last_post);
 
       const hasValidEthWallet = eth_address && eth_address !== '0x0000000000000000000000000000000000000000';
 
@@ -278,25 +336,33 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         { value: post_count, penalty: POINT_MULTIPLIERS.zero_value_penalties.post_count },
       ].reduce((acc, { value, penalty }) => acc + (value === 0 ? penalty : 0), 0);
 
-      const points =
+      const points = Math.round(
         (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance) +
         (cappedHpBalance * POINT_MULTIPLIERS.hp_balance) +
         (gnars_votes * POINT_MULTIPLIERS.gnars_votes) +
         (skatehive_nft_balance * POINT_MULTIPLIERS.skatehive_nft_balance) +
-        (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : 0) +
+        (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : POINT_MULTIPLIERS.zero_value_penalties.no_witness) +
         (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance) +
         (cappedPostCount * POINT_MULTIPLIERS.post_count) +
         (max_voting_power_usd * POINT_MULTIPLIERS.max_voting_power_usd) +
         ethWalletBonus +
         ethWalletPenalty -
-        Math.min(daysSinceLastPost, POINT_MULTIPLIERS.max_inactivity_penalty) +
+        inactivityPenalty +
         donationPoints +
-        zeroValuePenalties;
+        zeroValuePenalties
+      );
+
+      if (Math.round(currentPoints) !== Math.max(points, 0)) {
+        console.log('currentPoints !== Math.max(points, 0)');
+        console.log('user ' + user?.hive_author);
+        console.log('currentPoints ' + Math.round(currentPoints));
+        console.log('points ' + points);
+      }
 
       return {
         ...user,
         points: Math.max(points, 0),
-        hasUpdatedPoints: currentPoints !== Math.max(points, 0),
+        hasUpdatedPoints: Math.round(currentPoints) !== Math.max(points, 0),
       };
     });
 
@@ -306,8 +372,8 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
       return usersToUpdate.length;
     }
 
-    console.log(`leaderboardData users = ${leaderboardData.length}`)
-    console.log(`users to update = ${usersToUpdate.length}`)
+    logWithColor(`leaderboardData users = ${leaderboardData.length}`, 'red')
+    logWithColor(`users to update = ${usersToUpdate.length}`, 'red')
 
     const { error } = await supabase
       .from('leaderboard')

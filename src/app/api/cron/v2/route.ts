@@ -46,6 +46,11 @@ export const updateLeaderboardData = async () => {
             subscribers.some(data => data.hive_author === subscriber.hive_author)
         );
 
+        //debug specific user
+        // const validSubscribers = leaderboardData.filter(subscriber =>
+        //     subscribers.some(data => "vaipraonde" === subscriber.hive_author)
+        // );
+        
         const lastUpdatedData = validSubscribers
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
             .slice(0, 100);

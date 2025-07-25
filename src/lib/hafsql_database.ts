@@ -25,7 +25,7 @@ function initializePool(): Pool {
       password: process.env.HAFSQL_PWD || '',
       host: process.env.HAFSQL_SERVER || '',
       database: process.env.HAFSQL_DATABASE || '',
-      max: 2, // Per admin's recommendation
+      max: 5, // Per admin's recommendation
       idleTimeoutMillis: 300000, // 5 minutes
       connectionTimeoutMillis: 30000, // 30 seconds
     };
