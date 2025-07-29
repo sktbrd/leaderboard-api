@@ -12,7 +12,7 @@ export async function GET(
         const { username } = await params;
 
         // Get account information
-        const [rows, headers] = await db.executeQuery(`
+        const {rows, headers} = await db.executeQuery(`
      SELECT
     a.name,
     a.reputation,

@@ -15,7 +15,10 @@ const colors: { [key: string]: string } = {
 };
 
 export const logWithColor = (message: string, color: string) => {
-    console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
+    const VERBOSE = false;
+    
+    if (VERBOSE)
+        console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
 };
 
 // Helper function to fetch account information

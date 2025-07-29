@@ -23,7 +23,7 @@ export async function GET(
         const offset = (page - 1) * limit;
 
         // Get total count for pagination
-        const [totalRows] = await db.executeQuery(`
+        const {rows: totalRows} = await db.executeQuery(`
         SELECT 
             COUNT(*) AS total
         FROM comments c
@@ -39,7 +39,7 @@ export async function GET(
         const total = parseInt(totalRows[0].total);
 
         // Get paginated data
-        const [rows, headers] = await db.executeQuery(`
+        const {rows, headers} = await db.executeQuery(`
         SELECT 
             c.body, 
             c.author, 

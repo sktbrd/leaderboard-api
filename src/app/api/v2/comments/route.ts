@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
 
     // Get comments with their votes
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT 
         c.title, 
         c.body, 

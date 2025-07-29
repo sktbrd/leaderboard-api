@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
 
     // Get total count for pagination
-    const [totalRows] = await db.executeQuery(`
+    const {rows: totalRows} = await db.executeQuery(`
       SELECT COUNT(*) as total
       FROM comments c
       WHERE c.category = '${MY_COMMUNITY_CATEGORY}'
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     const total = parseInt(totalRows[0].total);
 
     // Get paginated data
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT 
         c.title, 
         c.body, 

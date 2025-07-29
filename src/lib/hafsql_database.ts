@@ -25,7 +25,7 @@ function initializePool(): Pool {
       password: process.env.HAFSQL_PWD || '',
       host: process.env.HAFSQL_SERVER || '',
       database: process.env.HAFSQL_DATABASE || '',
-      max: 2, // Per admin's recommendation
+      max: 5, // Per admin's recommendation
       idleTimeoutMillis: 300000, // 5 minutes
       connectionTimeoutMillis: 30000, // 30 seconds
     };
@@ -61,7 +61,7 @@ export class HAFSQL_Database {
     initializePool();
   }
 
-  async executeQuery(query: string, inputs: QueryInput[] = []): Promise<QueryResult> {
+async executeQuery(query: string, inputs: QueryInput[] = []): Promise<{ rows: any[]; headers: string[] }> {
     if (!pool) {
       throw new Error('Connection pool not initialized');
     }
@@ -72,10 +72,15 @@ export class HAFSQL_Database {
           ? query.replace(/@(\w+)/g, (_, name) => `$${inputs.findIndex(i => i.name === name) + 1}`)
           : query;
 
-        console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
+        // console.time(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
         const result = await pool.query(text, values);
-        console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
-        return result;
+        // console.timeEnd(`⏱️ HAFSQL Query: ${query.substring(0, 20)}...`);
+
+        return {
+          rows: result.rows,
+          headers: result.fields.map(f => f.name),
+        };
+
       } catch (error: any) {
         console.error(`Query attempt ${attempt} failed:`, {
           query: query.substring(0, 100) + '...',

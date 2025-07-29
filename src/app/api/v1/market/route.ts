@@ -12,7 +12,7 @@ export async function GET(
     // const { username } = await params;
 
     // Get user's balance information
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT "timestamp", "open", high, low, "close", base_vol, quote_vol 
       FROM market_bucket_5m_table
       ORDER BY "timestamp" DESC

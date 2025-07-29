@@ -13,7 +13,7 @@ export async function GET(
 
   try {
     // Get pending rewards information with detailed payout calculations
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT 
         SUM(CAST(pending_payout_value AS DOUBLE PRECISION)) as total_pending_payout,
         COALESCE(SUM(
@@ -41,7 +41,7 @@ export async function GET(
     `);
 
     // Get detailed list of pending posts
-    const [pendingPosts] = await db.executeQuery(`
+    const {rows: pendingPosts} = await db.executeQuery(`
       SELECT 
         c.title,
         c.permlink,
