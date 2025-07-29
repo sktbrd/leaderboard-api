@@ -3,8 +3,8 @@ import { fetchSubscribers } from '@/app/utils/hive/fetchSubscribers';
 import { logWithColor } from '@/app/utils/hive/hiveUtils';
 import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 import { NextResponse } from 'next/server';
-import { fetchCommunityPosts } from '../../v2/activity/posts/route';
-import { fetchCommunitySnaps } from '../../v2/activity/snaps/route';
+import { fetchCommunityPosts } from '@/app/utils/hive/fetchCommunityPosts';
+import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 import { calculateAndUpsertPoints, calculateAndUpsertPointsBatch, fetchAndUpsertAccountData } from './dataManager';
 
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 // Function to fetch and store data for a subset of subscribers
-export const updateLeaderboardData = async () => {
+const updateLeaderboardData = async () => {
     console.time("updateLeaderboardData");
     const batchSize = 100;
     const community = 'hive-173115';

@@ -7,8 +7,8 @@ import { fetchSubscribers } from './hive/fetchSubscribers';
 import { readGnarsBalance, readGnarsVotes, readSkatehiveNFTBalance } from './ethereum/ethereumUtils';
 import { getLeaderboard } from './supabase/getLeaderboard';
 import { matchAndUpsertDonors } from './ethereum/giveth';
-import { fetchCommunityPosts } from '../api/v2/activity/posts/route';
-import { fetchCommunitySnaps } from '../api/v2/activity/snaps/route';
+import { fetchCommunityPosts } from '@/app/utils/hive/fetchCommunityPosts';
+import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hive_author: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {

@@ -19,7 +19,7 @@
       const offset = (page - 1) * limit;
   
       // Get total count for pagination
-      const [totalRows] = await db.executeQuery(`
+      const {rows: totalRows} = await db.executeQuery(`
         SELECT COUNT(*) as total
         FROM comments
         WHERE parent_permlink SIMILAR TO 'snap-container-%'
@@ -29,7 +29,7 @@
       const total = parseInt(totalRows[0].total);
   
       // Get paginated parent comments
-      const [parentComments] = await db.executeQuery(`
+      const {rows: parentComments} = await db.executeQuery(`
         SELECT 
           c.body, 
           c.author, 
@@ -134,7 +134,8 @@
           author ${parentComment.author} 
           permlink ${parentComment.permlink} 
           `);
-        const [childComments] = await db.executeQuery(`
+          
+        const {rows: childComments} = await db.executeQuery(`
           SELECT 
             ch.body, 
             ch.author, 

@@ -13,7 +13,7 @@ export async function GET(
     const { username } = await params;
 
     // Get user's balance information
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT 
         account_name,
         hive,

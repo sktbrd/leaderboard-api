@@ -15,7 +15,7 @@ export async function GET(
     const username = parts[parts.length - 1];
 
     // Get account information
-    const [rows, headers] = await db.executeQuery(`
+    const {rows, headers} = await db.executeQuery(`
       SELECT 
         a.name,
         a.reputation,
@@ -55,7 +55,7 @@ export async function GET(
     }
 
     // Get total posts count
-    const [totalPostsRows] = await db.executeQuery(`
+    const {rows: totalPostsRows} = await db.executeQuery(`
       SELECT COUNT(*) AS total
       FROM comments c
       WHERE c.author = '${username}'
@@ -66,7 +66,7 @@ export async function GET(
     // console.dir(totalPostsRows);
 
     // Get following? information
-    const [rowsFollowing] = await db.executeQuery(`
+    const {rows: rowsFollowing} = await db.executeQuery(`
 SELECT Count(f.following_name) 
 FROM follows f
 JOIN community_subs cs ON f.following_name = cs.account_name 
@@ -76,7 +76,7 @@ cs.community_name = 'hive-173115';
           `);
 
     // Get followers? information
-    const [rowsFollowers] = await db.executeQuery(`
+    const {rows: rowsFollowers} = await db.executeQuery(`
 SELECT Count(f.follower_name) 
 FROM follows f
 JOIN community_subs cs ON f.follower_name = cs.account_name 

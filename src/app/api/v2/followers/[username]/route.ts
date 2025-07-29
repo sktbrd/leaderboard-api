@@ -18,7 +18,7 @@ export async function GET(
 //         const { username } = await params;
 
         // Get account information
-        const [rows, headers] = await db.executeQuery(`
+        const {rows, headers} = await db.executeQuery(`
 SELECT
 cs.account_name, cs.community_name, 
 f.follower_name, f.following_name

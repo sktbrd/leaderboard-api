@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       }
     });
 
-    const [snapContainerRow] = await db.executeQuery(`
+    const {rows: snapContainerRow} = await db.executeQuery(`
       SELECT permlink
       FROM comments
       WHERE author = 'peak.snaps'
