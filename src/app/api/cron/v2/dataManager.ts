@@ -14,8 +14,8 @@ import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 
 // Helper function to fetch posts and snaps scores from APIs
 async function fetchPostsAndSnaps(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
-  const POST_SCORE_MULTIPLIER = 27;
-  const SNAP_SCORE_MULTIPLIER = 10;
+  const POST_SCORE_MULTIPLIER = 5;
+  const SNAP_SCORE_MULTIPLIER = 2;
   const MAX_SNAPS = 20;
 
   try {
@@ -233,8 +233,8 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
   const POINT_MULTIPLIERS = {
     hive_balance: 0.1,
     hp_balance: 0.2,
-    gnars_votes: 0.1,
-    skatehive_nft_balance: 0.2,
+    gnars_votes: 2,
+    skatehive_nft_balance: 3,
     gnars_balance: 5, // Added for Gnars NFTs (5 points per NFT)
     witness_vote: 1000,
     hbd_savings_balance: 0.2,
@@ -243,7 +243,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     max_inactivity_penalty1: 100, // 1+ month
     max_inactivity_penalty2: 1500, // 2+ months
     max_inactivity_penalty3: 4100, // 3+ months
-    eth_wallet_penalty: -2000,
+    eth_wallet_penalty: 0,
     zero_value_penalties: {
       hive_balance: -1000,
       hp_balance: -5000,
@@ -368,6 +368,11 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         - inactivityPenalty
         // delegatedCommunity
       );
+
+      if (points <= 0){
+        points = post_count;
+      }
+
 
       // points = (has_voted_in_witness 
       //   ? points + POINT_MULTIPLIERS.witness_vote 
