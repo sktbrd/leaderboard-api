@@ -24,12 +24,11 @@ export const logWithColor = (message: string, color: string) => {
         console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
 };
 
-// Helper function to fetch account information
 
 
 // export async function (username: string): Promise<{
 export const fetchDelegatedCurator = async (username: string): Promise<string> => {
-    const COMMUNITY_CURATOR = 'steemskate'
+    const COMMUNITY_CURATOR = process.env.COMMUNITY_CURATOR || 'steemskate';
 
     const query = `SELECT hp_equivalent as community_curator_delegation
 FROM hafsql.delegations
@@ -46,6 +45,7 @@ where delegator ='${username}' and delegatee = '${COMMUNITY_CURATOR}';`
     }
 }
 
+// Helper function to fetch account information
 export const fetchAccountInfo = async (username: string): Promise<ExtendedAccount | null> => {
     try {
         // const accounts = await HiveClient.database.call('get_accounts', [[username]]);
