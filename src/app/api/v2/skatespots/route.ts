@@ -21,14 +21,15 @@
       // Get total count for pagination
       const {rows: totalRows} = await db.executeQuery(`
         SELECT COUNT(*) as total
-        FROM comments
+        FROM comments c
         WHERE (
-      c.parent_permlink SIMILAR TO 'snap-container-%'
-      OR c.parent_permlink = 'nxvsjarvmp'
-  )
-        AND json_metadata @> '{"tags": ["hive-173115"]}'
+                c.parent_permlink SIMILAR TO 'snap-container-%'
+                OR c.parent_permlink = 'nxvsjarvmp'
+            )
+            AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+            AND c.json_metadata @> '{"tags": ["skatespot"]}'
+            AND c.deleted = false
       `);
-      
       const total = parseInt(totalRows[0].total);
   
       // Get paginated data
@@ -89,12 +90,12 @@
           ON c.author = v.author 
           AND c.permlink = v.permlink
         WHERE (
-      c.parent_permlink SIMILAR TO 'snap-container-%'
-      OR c.parent_permlink = 'nxvsjarvmp'
-  )
-        AND c.json_metadata @> '{"tags": ["hive-173115"]}'
-        AND c.json_metadata @> '{"tags": ["skatespot"]}'
-        AND c.deleted = false
+                c.parent_permlink SIMILAR TO 'snap-container-%'
+                OR c.parent_permlink = 'nxvsjarvmp'
+            )
+            AND c.json_metadata @> '{"tags": ["hive-173115"]}'
+            AND c.json_metadata @> '{"tags": ["skatespot"]}'
+            AND c.deleted = false
         GROUP BY 
           c.body, 
           c.author, 
