@@ -1,7 +1,7 @@
 import { Asset } from '@hiveio/dhive';
 import { supabase } from '../../../utils/supabase/supabaseClient';
 import { logWithColor, fetchAccountInfo, extractEthAddressFromHiveAccount } from '../../../utils/hive/hiveUtils';
-import { fetchDelegatedCommunity } from '../../../utils/hive/hiveUtil_hafsql';
+import { fetchDelegatedCurator } from '../../../utils/hive/hiveUtil_hafsql';
 import { DataBaseAuthor } from '../../../utils/types';
 import { convertVestingSharesToHivePower, calculateUserVoteValue } from '../../../utils/hive/hiveUtils';
 import { fetchSubscribers } from '../../../utils/hive/fetchSubscribers';
@@ -13,25 +13,68 @@ import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 
 
 // Helper function to fetch posts and snaps scores from APIs
-async function fetchPostsAndSnaps(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
+async function fetchPostsAndSnapsScore(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
   const POST_SCORE_MULTIPLIER = 5;
   const SNAP_SCORE_MULTIPLIER = 2;
   const MAX_SNAPS = 20;
 
   try {
-    const posts = postsData.rows.find(row => row.user === hiveAuthor) || { score: 0, snaps: 0 };
+    const posts = postsData.rows.find(row => row.user === hiveAuthor) || { score: 0, posts: 0 };
     const snaps = snapsData.rows.find(row => row.user === hiveAuthor) || { score: 0, snaps: 0 };
 
-    const weeklySnaps = Math.min(parseInt(snaps.snaps, 10) || 0, MAX_SNAPS);
-    const combinedScore = (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER +
-      (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weeklySnaps / (snaps.snaps || 1));
+    const snaps_count = parseInt(snaps.snaps, 10) || 0;
+    const post_count = parseInt(posts.posts, 10) || 0;
+    const weeklySnaps = Math.min(snaps_count, MAX_SNAPS);
 
-    return { post_count: Math.round(combinedScore) };
+    const posts_score = Math.round(
+      (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER +
+      (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weeklySnaps / (snaps_count || 1))
+    );
+
+    return {
+      posts_score,
+      post_count,
+      snaps_count
+    };
   } catch (error) {
     logWithColor(`Error fetching posts/snaps for ${hiveAuthor}: ${error}`, 'red');
     return { post_count: 0 };
   }
 }
+export const removeUnsubscribedAuthors = async (currentSubscribers: { hive_author: string }[]) => {
+  const currentUsernames = currentSubscribers.map(s => s.hive_author.toLowerCase());
+
+  const { data: allAuthors, error } = await supabase
+    .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
+    .select('hive_author');
+
+  if (error) {
+    logWithColor(`Error fetching leaderboard authors: ${error.message}`, 'red');
+    return;
+  }
+
+  const toRemove = allAuthors
+    .filter(author =>
+      !currentUsernames.includes(author.hive_author.toLowerCase()) &&
+      !author.hive_author.toLowerCase().startsWith('donator_')
+    )
+    .map(author => author.hive_author);
+
+  if (toRemove.length > 0) {
+    const { error: deleteError } = await supabase
+      .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
+      .delete()
+      .in('hive_author', toRemove);
+
+    if (deleteError) {
+      logWithColor(`Error deleting unsubscribed authors: ${deleteError.message}`, 'red');
+    } else {
+      logWithColor(`Removed ${toRemove.length} unsubscribed authors.`, 'yellow');
+    }
+  }
+};
+
+
 
 // Helper function to upsert authors into Supabase
 export const upsertAuthors = async (authors: { hive_author: string }[]) => {
@@ -136,9 +179,9 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       return;
     }
 
-    const delegatedCommunity = await fetchDelegatedCommunity(hive_author);
-    if (parseInt(delegatedCommunity) > 0)
-      logWithColor("We will use CCD? " + delegatedCommunity, 'red');
+    const delegated_curator = await fetchDelegatedCurator(hive_author);
+    if (parseInt(delegated_curator) > 0)
+      logWithColor("We will use CCD? " + delegated_curator, 'red');
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -165,42 +208,11 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       }
     }
 
-    const { post_count } = await fetchPostsAndSnaps(hive_author, postsData, snapsData);
+    const { posts_score=0, post_count=0, snaps_count=0 } = await fetchPostsAndSnapsScore(hive_author, postsData, snapsData);
 
-    if (post_count > 0) {
+    if (posts_score > 0) {
       // just debug info
-      interface UserPostStats {
-        snaps: number;
-        posts: number;
-      }
-
-      const userPostSummary: Record<string, UserPostStats> = {};
-      // Combine all users from snapsData and postsData
-      const combinedUsers = [
-        ...snapsData.rows.map(item => ({ user: item.user, type: 'snap', count: Number(item.snaps) })),
-        ...postsData.rows.map(item => ({ user: item.user, type: 'post', count: Number(item.posts) })),
-      ];
-
-      // Aggregate counts per user
-      // const userPostSummary = {};
-
-      combinedUsers.forEach(({ user, type, count }) => {
-        if (!userPostSummary[user]) {
-          userPostSummary[user] = { snaps: 0, posts: 0 };
-        }
-
-        if (type === 'snap') userPostSummary[user].snaps += count;
-        if (type === 'post') userPostSummary[user].posts += count;
-      });
-
-      // Log post info for each user
-      Object.entries(userPostSummary).forEach(([user, { snaps, posts }]) => {
-        const total = snaps + posts;
-        logWithColor(`User ${user} has ${posts} posts, ${snaps} snaps, total: ${total}`, 'yellow');
-      });
-
-      // Optionally compare to post_count
-      logWithColor(`Fetched post_count from Hive for ${hive_author}: ${post_count}`, 'yellow');
+      logWithColor(`User ${hive_author} has posts_score = ${posts_score} -- ${post_count} posts, ${snaps_count} snaps, total: ${post_count + snaps_count}`, 'yellow');
     }
 
     const accountData = {
@@ -218,6 +230,9 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       last_updated: new Date(),
       last_post: new Date(accountInfo.last_post),
       post_count,
+      snaps_count,
+      posts_score,
+      delegated_curator,
     };
 
     await upsertAccountData([accountData]);
