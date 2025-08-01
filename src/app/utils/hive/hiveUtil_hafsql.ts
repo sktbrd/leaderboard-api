@@ -28,7 +28,7 @@ export const logWithColor = (message: string, color: string) => {
 
 
 // export async function (username: string): Promise<{
-export const fetchDelegatedCommunity = async (username: string): Promise<string> => {
+export const fetchDelegatedCurator = async (username: string): Promise<string> => {
     const COMMUNITY_CURATOR = 'steemskate'
 
     const query = `SELECT hp_equivalent as community_curator_delegation
