@@ -41,7 +41,7 @@ export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     }));
 
     const { error } = await supabase
-      .from('leaderboard')
+      .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
       .upsert(authorData, { onConflict: 'hive_author' });
 
     if (error) {
@@ -60,7 +60,7 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
   try {
     for (const account of accounts) {
       const { error: upsertError } = await supabase
-        .from('leaderboard')
+        .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
         .upsert(account, { onConflict: 'hive_author' });
 
       if (upsertError) {
@@ -403,7 +403,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     logWithColor(`users to update = ${usersToUpdate.length}`, 'red')
 
     const { error } = await supabase
-      .from('leaderboard')
+      .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
       .upsert(
         usersToUpdate.map(({ hive_author, points, post_count }) => ({
           hive_author,
@@ -537,7 +537,7 @@ export const calculateAndUpsertPoints = async () => {
     }
 
     const { error } = await supabase
-      .from('leaderboard')
+      .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
       .upsert(
         usersToUpdate.map(({ hive_author, points, post_count }) => ({
           hive_author,
