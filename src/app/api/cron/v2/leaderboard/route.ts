@@ -16,8 +16,8 @@ export async function GET(req: Request) {
 
     // Sorting
     const sorted = [...filtered].sort((a, b) => {
-      if (sortBy === 'post_count') 
-        return b.post_count - a.post_count;      
+      if (sortBy === 'posts_score') 
+        return b.posts_score - a.posts_score;
       return b.points - a.points;
     });
 
