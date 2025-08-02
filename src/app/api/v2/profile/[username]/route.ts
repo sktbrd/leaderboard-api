@@ -4,10 +4,14 @@ import { HiveClient } from '@/lib/hive-client';
 
 const db = new HAFSQL_Database();
 
-export async function GET(request: Request, { params }: { params: { username: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ username: string }> }
+) {
   console.log("Fetching profile data...");
   try {
-    const username = params.username || "SPECTATOR";
+    const resolvedParams = await params;
+    const username = resolvedParams.username || "SPECTATOR";
     
     // Get account information
     const { rows, headers } = await db.executeQuery(`
