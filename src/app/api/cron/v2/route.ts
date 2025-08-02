@@ -5,7 +5,7 @@ import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
 import { NextResponse } from 'next/server';
 import { fetchCommunityPosts } from '@/app/utils/hive/fetchCommunityPosts';
 import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
-import { calculateAndUpsertPoints, calculateAndUpsertPointsBatch, fetchAndUpsertAccountData } from './dataManager';
+import { calculateAndUpsertPoints, calculateAndUpsertPointsBatch, fetchAndUpsertAccountData, removeUnsubscribedAuthors, upsertAuthors } from './dataManager';
 
 export async function GET() {
     try {
@@ -35,9 +35,20 @@ const updateLeaderboardData = async () => {
         console.timeEnd("fetchSubscribers");
 
         console.time("getLeaderboard");
-        const leaderboardData = await getLeaderboard();
+        var leaderboardData = await getLeaderboard();
         console.warn(`Leaderboard has ${leaderboardData.length} records.`);
         console.timeEnd("getLeaderboard");
+
+        // Step 1: Upsert or remove community subscribers into the database
+        // Remove "donator_" users from the leaderboard before comparing
+        const filteredLeaderboard = leaderboardData.filter(user => !user.hive_author.startsWith('donator_'));
+
+        // Then compare with subscribers
+        if (subscribers.length !== filteredLeaderboard.length) {
+            await upsertAuthors(subscribers);
+            await removeUnsubscribedAuthors(subscribers);
+            leaderboardData = await getLeaderboard();
+        }
 
         const postsData = await fetchCommunityPosts(community, 1, subscribers.length);
         const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length);
@@ -46,11 +57,11 @@ const updateLeaderboardData = async () => {
             subscribers.some(data => data.hive_author === subscriber.hive_author)
         );
 
-        //debug specific user
+        // debug specific user
         // const validSubscribers = leaderboardData.filter(subscriber =>
         //     subscribers.some(data => "vaipraonde" === subscriber.hive_author)
         // );
-        
+
         const lastUpdatedData = validSubscribers
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
             .slice(0, 100);

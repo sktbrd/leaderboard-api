@@ -29,7 +29,8 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data, error } = await supabase.from('leaderboard').select('*');
+      const { data, error } = await supabase.from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
+      .select('*');
       if (error) {
         console.error('Error fetching leaderboard:', error);
       } else {

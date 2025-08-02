@@ -51,7 +51,7 @@ export const fetchGivethDonations = async (): Promise<GivethResponse> => {
 /** ✅ Fetch all current users from Supabase */
 export const fetchAllHiveAuthors = async () => {
   const { data, error } = await supabase
-    .from('leaderboard')
+    .from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
     .select('hive_author, eth_address, giveth_donations_usd, giveth_donations_amount');
 
   if (error) {
@@ -118,7 +118,7 @@ export const matchAndUpsertDonors = async () => {
 
     // ✅ Bulk upsert aggregated data
     if (upsertData.length > 0) {
-      const { error } = await supabase.from('leaderboard')
+      const { error } = await supabase.from(process.env.NEXT_PUBLIC_SUPABASE_DB || 'leaderboard')
                                       .upsert(upsertData, { 
                                         onConflict: 'hive_author' 
                                       });
