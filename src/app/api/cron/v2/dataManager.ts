@@ -208,7 +208,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
       }
     }
 
-    const { posts_score=0, post_count=0, snaps_count=0 } = await fetchPostsAndSnapsScore(hive_author, postsData, snapsData);
+    const { posts_score = 0, post_count = 0, snaps_count = 0 } = await fetchPostsAndSnapsScore(hive_author, postsData, snapsData);
 
     if (posts_score > 0) {
       // just debug info
@@ -258,6 +258,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     max_inactivity_penalty1: 100, // 1+ month
     max_inactivity_penalty2: 1500, // 2+ months
     max_inactivity_penalty3: 4100, // 3+ months
+    max_inactivity_penalty4: 10000, // 1+ year
     eth_wallet_penalty: 0,
     zero_value_penalties: {
       hive_balance: -1000,
@@ -283,17 +284,19 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
 
   const calculateInactivityPenalty = (last_post: string | number | Date) => {
     if (!last_post) {
-      return POINT_MULTIPLIERS.max_inactivity_penalty3; // 100 points penalty for no last post
+      return POINT_MULTIPLIERS.max_inactivity_penalty4;
     }
 
     const daysSinceLastPost = Math.floor((Date.now() - new Date(last_post).getTime()) / (1000 * 60 * 60 * 24));
 
-    if (daysSinceLastPost >= 90) {
-      return POINT_MULTIPLIERS.max_inactivity_penalty3; // 100 points for 3+ months
+    if (daysSinceLastPost >= 365) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty4; // penalty for 1+ year
+    } else if (daysSinceLastPost >= 90) {
+      return POINT_MULTIPLIERS.max_inactivity_penalty3; // 3+ months
     } else if (daysSinceLastPost >= 60) {
-      return POINT_MULTIPLIERS.max_inactivity_penalty2; // 75 points for 2+ months
+      return POINT_MULTIPLIERS.max_inactivity_penalty2; // 2+ months
     } else if (daysSinceLastPost >= 30) {
-      return POINT_MULTIPLIERS.max_inactivity_penalty1; // 50 points for 1+ month
+      return POINT_MULTIPLIERS.max_inactivity_penalty1; // 1+ month
     }
     return 0; // No penalty if last post is within 30 days
   };
@@ -382,12 +385,12 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         + ethWalletBonus
         + ethWalletPenalty
         + donationPoints
-        + zeroValuePenalties 
+        + zeroValuePenalties
         - inactivityPenalty
         // delegatedCommunity
       );
 
-      if (points <= 0){
+      if (points <= 0) {
         points = posts_score;
       }
 
