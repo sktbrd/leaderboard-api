@@ -111,15 +111,16 @@ const updateLeaderboardData = async () => {
         console.log(`Users last updated before today: ${outdatedUsers.length}`);
 
         // Get the most recent last_updated date
-        const oneHourMs = 10 * 60 * 1000;
+        // const oneHourMs = 60 * 60 * 1000;
+        const outdatedHourMs = 12 * 60 * 60 * 1000 / 3; //3h20min
         const mostRecent = new Date(
             Math.max(...validSubscribers.map(data => new Date(data.last_updated).getTime()))
         );
         outdatedUsers = validSubscribers.filter(data => {
             const updatedDate = new Date(data.last_updated);
-            return mostRecent.getTime() - updatedDate.getTime() > oneHourMs;
+            return mostRecent.getTime() - updatedDate.getTime() > outdatedHourMs;
         });
-        console.log(`Users outdated by more than 10 min: ${outdatedUsers.length}`);
+        console.log(`Users outdated by more than 3h20min: ${outdatedUsers.length}`);
 
         return updatedUsers;
     } catch (error) {
