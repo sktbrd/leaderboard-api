@@ -54,11 +54,11 @@ const updateLeaderboardData = async () => {
         const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length);
 
         const validSubscribers = leaderboardData.filter(subscriber =>
-            // run all users
+            // Run all users
             subscribers.some(data => data.hive_author === subscriber.hive_author)
 
-            // debug specific user
-            // subscribers.some(data => "mengao" === subscriber.hive_author)
+            // Debug specific user
+            // subscribers.some(data => "xvlad" === subscriber.hive_author)
         );
 
     
