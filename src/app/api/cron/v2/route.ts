@@ -64,15 +64,15 @@ const updateLeaderboardData = async () => {
     
         const lastUpdatedData = validSubscribers
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
-            .slice(0, 100);
+            .slice(0, batchSize);
 
         // const totalBatches = Math.ceil(lastUpdatedData.length / batchSize);
 
         // Log the last_updated values
-        lastUpdatedData.forEach(data => {
-            const formattedDate = new Date(data.last_updated).toLocaleString();
+        // lastUpdatedData.forEach(data => {
+            // const formattedDate = new Date(data.last_updated).toLocaleString();
             // console.log(`Last updated for ${data.hive_author}: ${formattedDate}`);
-        });
+        // });
 
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Set to start of today
