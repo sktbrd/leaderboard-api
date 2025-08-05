@@ -28,7 +28,7 @@ export const logWithColor = (message: string, color: string) => {
 
 // export async function (username: string): Promise<{
 export const fetchDelegatedCurator = async (username: string): Promise<string> => {
-    const COMMUNITY_CURATOR = process.env.COMMUNITY_CURATOR || 'steemskate';
+    const COMMUNITY_CURATOR = process.env.COMMUNITY_CURATOR || 'skatehive';
 
     const query = `SELECT hp_equivalent as community_curator_delegation
 FROM hafsql.delegations

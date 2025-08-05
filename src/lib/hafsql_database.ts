@@ -37,17 +37,17 @@ function initializePool(): Pool {
     pool = new Pool(config);
 
     pool.on('error', (err) => {
-      console.error('PostgreSQL pool error:', err);
+      // console.error('PostgreSQL pool error:', err);
     });
 
     pool.on('connect', () => {
       activeConnections++;
-      console.debug(`Connection acquired. Active connections: ${activeConnections}`);
+      // console.debug(`Connection acquired. Active connections: ${activeConnections}`);
     });
 
     pool.on('remove', () => {
       activeConnections--;
-      console.debug(`Connection released. Active connections: ${activeConnections}`);
+      // console.debug(`Connection released. Active connections: ${activeConnections}`);
     });
   }
   return pool;

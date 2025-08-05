@@ -49,7 +49,7 @@ export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     if (error) {
       logWithColor(`Error upserting authors: ${error.message}`, 'red');
     } else {
-      logWithColor(`Successfully upserted ${authors.length} authors.`, 'blue');
+      // logWithColor(`Successfully upserted ${authors.length} authors.`, 'blue');
     }
   } catch (error) {
     logWithColor(`Error in upsertAuthors: ${error}`, 'red');
@@ -68,7 +68,7 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
       if (upsertError) {
         logWithColor(`Error upserting account data for ${account.hive_author}: ${upsertError.message}`, 'red');
       } else {
-        logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
+        // logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
       }
     }
   } catch (error) {
@@ -165,7 +165,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     let skatehive_nft_balance = 0;
     const eth_address = extractEthAddressFromHiveAccount(accountInfo.json_metadata);
     if (eth_address === '0x0000000000000000000000000000000000000000') {
-      logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
+      // logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
     }
     else {
       gnars_balance = await readGnarsBalance(eth_address);
@@ -331,7 +331,7 @@ export const calculateAndUpsertPoints = async () => {
     if (error) {
       logWithColor(`Failed to batch update points: ${error.message}`, 'red');
     } else {
-      logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+      // logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
     }
   } catch (error) {
     logWithColor(`Error in calculateAndUpsertPoints: ${(error as Error).message}`, 'red');

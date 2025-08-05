@@ -13,22 +13,37 @@ import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 
 
 // Helper function to fetch posts and snaps scores from APIs
-async function fetchPostsAndSnapsScore(hiveAuthor: string, postsData: { rows: any[]; }, snapsData: { rows: any[]; }) {
-  const POST_SCORE_MULTIPLIER = 5;
-  const SNAP_SCORE_MULTIPLIER = 2;
+async function fetchPostsAndSnapsScore(
+  hiveAuthor: string,
+  postsData: { rows: any[] },
+  snapsData: { rows: any[] }
+) {
   const MAX_SNAPS = 20;
 
   try {
-    const posts = postsData.rows.find(row => row.user === hiveAuthor) || { score: 0, posts: 0 };
-    const snaps = snapsData.rows.find(row => row.user === hiveAuthor) || { score: 0, snaps: 0 };
+    const posts = postsData.rows.find(row => row.user === hiveAuthor) || {};
+    const snaps = snapsData.rows.find(row => row.user === hiveAuthor) || {};
 
-    const snaps_count = parseInt(snaps.snaps, 10) || 0;
-    const post_count = parseInt(posts.posts, 10) || 0;
-    const weeklySnaps = Math.min(snaps_count, MAX_SNAPS);
+    const post_count = parseInt(posts.posts || '0', 10);
+    const snaps_count = parseInt(snaps.snaps || '0', 10);
 
+    const post_votes = parseFloat(posts.total_votes || '0');
+    const post_payout = parseFloat(posts.total_payout || '0');
+
+    const snap_votes = parseFloat(snaps.total_votes || '0');
+    const snap_payout = parseFloat(snaps.total_payout || '0');
+
+    // Quality: Engagement × Value
+    const post_engagement_score = post_votes * Math.log2(1 + post_payout);
+    const snap_engagement_score = snap_votes * Math.log2(1 + snap_payout);
+
+    // Quantity bonus (posts more valuable)
+    const post_quantity_bonus = post_count * 5;
+    const snap_quantity_bonus = snaps_count * 1.5;
+
+    // Final Score: sum of quality + quantity
     const posts_score = Math.round(
-      (parseFloat(posts.score) || 0) * POST_SCORE_MULTIPLIER +
-      (parseFloat(snaps.score) || 0) * SNAP_SCORE_MULTIPLIER * (weeklySnaps / (snaps_count || 1))
+      post_engagement_score + snap_engagement_score + post_quantity_bonus + snap_quantity_bonus
     );
 
     return {
@@ -41,6 +56,8 @@ async function fetchPostsAndSnapsScore(hiveAuthor: string, postsData: { rows: an
     return { post_count: 0 };
   }
 }
+
+
 export const removeUnsubscribedAuthors = async (currentSubscribers: { hive_author: string }[]) => {
   const currentUsernames = currentSubscribers.map(s => s.hive_author.toLowerCase());
 
@@ -90,7 +107,7 @@ export const upsertAuthors = async (authors: { hive_author: string }[]) => {
     if (error) {
       logWithColor(`Error upserting authors: ${error.message}`, 'red');
     } else {
-      logWithColor(`Successfully upserted ${authors.length} authors.`, 'blue');
+      // logWithColor(`Successfully upserted ${authors.length} authors.`, 'blue');
     }
   } catch (error) {
     logWithColor(`Error in upsertAuthors: ${error}`, 'red');
@@ -109,7 +126,7 @@ export const upsertAccountData = async (accounts: Partial<DataBaseAuthor>[]) => 
       if (upsertError) {
         logWithColor(`Error upserting account data for ${account.hive_author}: ${upsertError.message}`, 'red');
       } else {
-        logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
+        // logWithColor(`Successfully upserted account data for ${account.hive_author}.`, 'green');
       }
     }
   } catch (error) {
@@ -180,8 +197,8 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     }
 
     const delegated_curator = await fetchDelegatedCurator(hive_author);
-    if (parseInt(delegated_curator) > 0)
-      logWithColor("We will use CCD? " + delegated_curator, 'red');
+    // if (parseInt(delegated_curator) > 0)
+    // logWithColor("We will use Comm Curator Delegation? " + delegated_curator, 'red');
 
     const vestingShares = parseFloat((accountInfo.vesting_shares as Asset).toString().split(" ")[0]);
     const delegatedVestingShares = parseFloat((accountInfo.delegated_vesting_shares as Asset).toString().split(" ")[0]);
@@ -199,7 +216,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     let skatehive_nft_balance = 0;
     const eth_address = extractEthAddressFromHiveAccount(accountInfo.json_metadata);
     if (eth_address === '0x0000000000000000000000000000000000000000') {
-      logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
+      // logWithColor(`Skipping ${hive_author} (no ETH address).`, 'orange');
     } else {
       if (process.env.ALCHEMY_API_KEY) {
         gnars_balance = await readGnarsBalance(eth_address);
@@ -236,7 +253,7 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
     };
 
     await upsertAccountData([accountData]);
-    logWithColor(`Successfully upserted data for ${hive_author}.`, 'green');
+    // logWithColor(`Successfully upserted data for ${hive_author}.`, 'green');
   } catch (error) {
     logWithColor(`Error fetching or upserting account info for ${hive_author}: ${error}`, 'red');
   }
@@ -244,7 +261,6 @@ export const fetchAndUpsertAccountData = async (subscriber: { hive_author: strin
 
 // export const calculateAndUpsertPoints = async () => {
 export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
-
   const POINT_MULTIPLIERS = {
     hive_balance: 0.1,
     hp_balance: 0.2,
@@ -253,7 +269,8 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     gnars_balance: 5, // Added for Gnars NFTs (5 points per NFT)
     witness_vote: 1000,
     hbd_savings_balance: 0.2,
-    posts_score: 0.1,
+    posts_score: 0.5,
+    delegated_curator: 0.1,
     max_voting_power_usd: 1000,
     max_inactivity_penalty1: 100, // 1+ month
     max_inactivity_penalty2: 1500, // 2+ months
@@ -261,12 +278,12 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     max_inactivity_penalty4: 10000, // 1+ year
     eth_wallet_penalty: 0,
     zero_value_penalties: {
-      hive_balance: -1000,
+      hive_balance: -4000,
       hp_balance: -5000,
       gnars_votes: 0,
       skatehive_nft_balance: 0,
       hbd_savings_balance: -200,
-      posts_score: -7000,
+      posts_score: -255,
       no_witness: -3500,
     },
   };
@@ -276,10 +293,9 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     hp_balance: 1000,
     hbd_balance: 1000,
     hbd_savings_balance: 1000,
-    posts_score: 1,
-    skatehive_nft_balance: 10, // Cap at 20 NFTs for 1,000 points
-    gnars_balance: 10, // Cap at 10 Gnars NFTs for 100 points
-
+    posts_score: 7000,
+    skatehive_nft_balance: 50, // Cap at 20 NFTs for 1,000 points
+    gnars_balance: 50, // Cap at 10 Gnars NFTs for 100 points
   };
 
   const calculateInactivityPenalty = (last_post: string | number | Date) => {
@@ -318,6 +334,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
 
     const updatedData = leaderboardData.map(user => {
       const {
+        hive_author,
         hive_balance = 0,
         hp_balance = 0,
         gnars_votes = 0,
@@ -335,8 +352,12 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         points: currentPoints = 0,
       } = user;
 
+      if (hive_author.startsWith("donator_")) {
+        console.log("found user");
+      }
+
       const donationUSD = user.giveth_donations_usd ?? 0;
-      const donationPoints = Math.min(donationUSD, 1000) * 5;
+      const donationPoints = Math.min(donationUSD, 1000) * 2;
 
       const cappedHiveBalance = capValue(hive_balance, CAPS.hive_balance);
       const cappedHpBalance = capValue(hp_balance, CAPS.hp_balance);
@@ -366,17 +387,27 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
 
       // Calculate Skatehive NFT bonus
       let skatehiveNFTPoints = cappedSkatehiveNFTBalance * POINT_MULTIPLIERS.skatehive_nft_balance;
-      if (skatehive_nft_balance >= 5) {
-        skatehiveNFTPoints = 500; // Bonus for 100+ NFTs
-      } else if (skatehive_nft_balance >= 1) {
-        skatehiveNFTPoints = 100; // Bonus for 50+ NFTs
-      }
+      // if (skatehive_nft_balance > 20) {
+      //   skatehiveNFTPoints = 5000;
+      // } else if (skatehive_nft_balance > 15) {
+      //   skatehiveNFTPoints = 4000;
+      // } else if (skatehive_nft_balance > 10) {
+      //   skatehiveNFTPoints = 3000;
+      // } else if (skatehive_nft_balance > 5) {
+      //   skatehiveNFTPoints = 2000;
+      // } else if (skatehive_nft_balance > 1) {
+      //   skatehiveNFTPoints = 1000;
+      // } else if (skatehive_nft_balance === 1) {
+      //   skatehiveNFTPoints = 500;
+      // } else {
+      //   skatehiveNFTPoints = 0;
+      // }
 
       var points = Math.round(
         + (cappedHiveBalance * POINT_MULTIPLIERS.hive_balance)
         + (cappedHpBalance * POINT_MULTIPLIERS.hp_balance)
         + (gnars_votes * POINT_MULTIPLIERS.gnars_votes)
-        + skatehiveNFTPoints // Use bonus-modified points
+        + skatehiveNFTPoints
         + (cappedGnarsBalance * POINT_MULTIPLIERS.gnars_balance) // Added for Gnars NFTs
         + (has_voted_in_witness ? POINT_MULTIPLIERS.witness_vote : POINT_MULTIPLIERS.zero_value_penalties.no_witness)
         + (cappedHbdSavingsBalance * POINT_MULTIPLIERS.hbd_savings_balance)
@@ -386,6 +417,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
         + ethWalletPenalty
         + donationPoints
         + zeroValuePenalties
+        + delegated_curator * POINT_MULTIPLIERS.delegated_curator
         - inactivityPenalty
         // delegatedCommunity
       );
@@ -416,7 +448,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
 
     const usersToUpdate = updatedData.filter(user => user.hasUpdatedPoints);
     if (usersToUpdate.length === 0) {
-      logWithColor('No changes in points detected. Skipping updates.', 'yellow');
+      // logWithColor('No changes in points detected. Skipping updates.', 'yellow');
       return usersToUpdate.length;
     }
 
@@ -437,7 +469,7 @@ export const calculateAndUpsertPointsBatch = async (batchUsers: any[]) => {
     if (error) {
       logWithColor(`Failed to batch update points: ${error.message}`, 'red');
     } else {
-      logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+      // logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
     }
 
     return usersToUpdate;
@@ -553,7 +585,7 @@ export const calculateAndUpsertPoints = async () => {
 
     const usersToUpdate = updatedData.filter(user => user.hasUpdatedPoints);
     if (usersToUpdate.length === 0) {
-      logWithColor('No changes in points detected. Skipping updates.', 'yellow');
+      // logWithColor('No changes in points detected. Skipping updates.', 'yellow');
       return;
     }
 
@@ -571,7 +603,7 @@ export const calculateAndUpsertPoints = async () => {
     if (error) {
       logWithColor(`Failed to batch update points: ${error.message}`, 'red');
     } else {
-      logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
+      // logWithColor(`Updated points for ${usersToUpdate.length} users successfully.`, 'green');
     }
   } catch (error) {
     logWithColor(`Error in calculateAndUpsertPoints: ${(error as Error).message}`, 'red');

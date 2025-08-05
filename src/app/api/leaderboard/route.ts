@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
         await fetchAndStoreAllData();
         logWithColor('Data fetch and store process completed.', 'purple');
 
-        logWithColor('Data fetched and stored successfully.', 'green');
+        // logWithColor('Data fetched and stored successfully.', 'green');
 
         return NextResponse.json({ message: 'Data fetched and stored successfully.' }, { status: 200 });
     } catch (error: unknown) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         await fetchAndStoreAllData();
         logWithColor('Data fetch and store process completed.', 'purple');
 
-        logWithColor('Data fetched and stored successfully.', 'green');
+        // logWithColor('Data fetched and stored successfully.', 'green');
 
         return NextResponse.json({ message: 'Data fetched and stored successfully.' }, { status: 200 });
     } catch (error: unknown) {

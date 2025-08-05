@@ -25,7 +25,7 @@ export async function GET() {
 // Function to fetch and store data for a subset of subscribers
 const updateLeaderboardData = async () => {
     console.time("updateLeaderboardData");
-    const batchSize = 100;
+    const batchSize = 50;
     const community = 'hive-173115';
 
     try {
@@ -54,14 +54,14 @@ const updateLeaderboardData = async () => {
         const snapsData = await fetchCommunitySnaps(community, 1, subscribers.length);
 
         const validSubscribers = leaderboardData.filter(subscriber =>
+            // run all users
             subscribers.some(data => data.hive_author === subscriber.hive_author)
+
+            // debug specific user
+            // subscribers.some(data => "mengao" === subscriber.hive_author)
         );
 
-        // debug specific user
-        // const validSubscribers = leaderboardData.filter(subscriber =>
-        //     subscribers.some(data => "vaipraonde" === subscriber.hive_author)
-        // );
-
+    
         const lastUpdatedData = validSubscribers
             .sort((a, b) => new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime())
             .slice(0, 100);
@@ -71,7 +71,7 @@ const updateLeaderboardData = async () => {
         // Log the last_updated values
         lastUpdatedData.forEach(data => {
             const formattedDate = new Date(data.last_updated).toLocaleString();
-            console.log(`Last updated for ${data.hive_author}: ${formattedDate}`);
+            // console.log(`Last updated for ${data.hive_author}: ${formattedDate}`);
         });
 
         const today = new Date();
@@ -82,7 +82,7 @@ const updateLeaderboardData = async () => {
 
         await Promise.all(
             batch.map(async (subscriber) => {
-                console.log(`updating subscriber ${subscriber.hive_author}`);
+                // console.log(`updating subscriber ${subscriber.hive_author}`);
                 try {
                     await fetchAndUpsertAccountData(subscriber, postsData, snapsData);
                 } catch (error) {
@@ -111,7 +111,7 @@ const updateLeaderboardData = async () => {
         console.log(`Users last updated before today: ${outdatedUsers.length}`);
 
         // Get the most recent last_updated date
-        const oneHourMs = 60 * 60 * 1000;
+        const oneHourMs = 10 * 60 * 1000;
         const mostRecent = new Date(
             Math.max(...validSubscribers.map(data => new Date(data.last_updated).getTime()))
         );
@@ -119,7 +119,7 @@ const updateLeaderboardData = async () => {
             const updatedDate = new Date(data.last_updated);
             return mostRecent.getTime() - updatedDate.getTime() > oneHourMs;
         });
-        console.log(`Users outdated by more than 1 hour: ${outdatedUsers.length}`);
+        console.log(`Users outdated by more than 10 min: ${outdatedUsers.length}`);
 
         return updatedUsers;
     } catch (error) {
