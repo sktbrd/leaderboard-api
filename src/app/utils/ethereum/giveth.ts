@@ -113,7 +113,8 @@ export const matchAndUpsertDonors = async () => {
           hive_author,
           eth_address,
           giveth_donations_usd,
-          giveth_donations_amount
+          giveth_donations_amount,
+          last_updated: new Date().toISOString()  //update last_updated
         })); // 🚨 `id` is NOT included here
 
     // ✅ Bulk upsert aggregated data
@@ -125,8 +126,8 @@ export const matchAndUpsertDonors = async () => {
 
       if (error) 
         logWithColor(`Error inserting/updating donors: ${error.message}`, 'red');
-      else 
-        logWithColor(`Successfully upserted ${upsertData.length} donors.`, 'green');
+      // else 
+        // logWithColor(`Successfully upserted ${upsertData.length} donors.`, 'green')
     }
   } catch (error) {
     logWithColor(`Error in matchAndUpsertDonors: ${error}`, 'red');
