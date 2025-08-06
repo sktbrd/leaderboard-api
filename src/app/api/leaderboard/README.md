@@ -1,15 +1,18 @@
 # Legacy Leaderboard API
 
 ## Endpoint
+
 `GET /api/leaderboard`
 `POST /api/leaderboard`
 
 ## Description
+
 Legacy endpoint for fetching and storing leaderboard data for the Skatehive community. This endpoint triggers data aggregation from Hive and Ethereum blockchains and stores it in the Supabase database.
 
 ## Request Examples
 
 ### GET Request
+
 ```bash
 # Basic leaderboard data fetch
 curl -X GET "http://localhost:3000/api/leaderboard"
@@ -19,6 +22,7 @@ curl -X GET "http://localhost:3000/api/leaderboard?community=skatehive"
 ```
 
 ### POST Request
+
 ```bash
 # Trigger data update for specific community
 curl -X POST "http://localhost:3000/api/leaderboard" \
@@ -27,9 +31,11 @@ curl -X POST "http://localhost:3000/api/leaderboard" \
 ```
 
 ## Query Parameters (GET)
+
 - **community** (string, optional): Filter by community name
 
 ## Request Body (POST)
+
 ```json
 {
   "community": "skatehive"
@@ -39,6 +45,7 @@ curl -X POST "http://localhost:3000/api/leaderboard" \
 ## Response Format
 
 ### Success Response
+
 ```json
 {
   "message": "Data fetched and stored successfully."
@@ -46,6 +53,7 @@ curl -X POST "http://localhost:3000/api/leaderboard" \
 ```
 
 ### Error Response
+
 ```json
 {
   "error": "Community parameter is missing"
@@ -53,6 +61,7 @@ curl -X POST "http://localhost:3000/api/leaderboard" \
 ```
 
 ## Status Codes
+
 - **200 OK**: Data successfully fetched and stored
 - **400 Bad Request**: Missing required parameters (POST)
 - **500 Internal Server Error**: Data fetch or storage failed
@@ -62,6 +71,7 @@ curl -X POST "http://localhost:3000/api/leaderboard" \
 The legacy leaderboard uses a comprehensive point system to rank users based on their support and contributions to the Skatehive community.
 
 ### **Point Categories**
+
 | **Category**              | **Points**                                                              |
 | ------------------------- | ----------------------------------------------------------------------- |
 | **Hive Balance**          | 0.1 points per Hive, capped at 1,000 Hive (max 100 points)              |
@@ -103,18 +113,21 @@ Total Points =
 ## Data Sources
 
 ### Hive Blockchain Data
+
 - **HAFSQL Database**: Primary source for Hive user data and activities
 - **Post History**: Content creation and engagement metrics
 - **Voting Records**: Witness votes and content curation
 - **Wallet Balances**: HIVE, HBD, and HP balances
 
-### Ethereum Integration  
+### Ethereum Integration
+
 - **Gnars DAO**: Voting participation and governance activity
 - **NFT Collections**: Skatehive and related NFT holdings
 - **Donation Tracking**: Giveth platform contributions
 - **Wallet Validation**: Ethereum address verification
 
 ### Performance Considerations
+
 - **Caching**: Leaderboard data cached for performance
 - **Batch Processing**: Regular updates via cron jobs
 - **Rate Limiting**: API limits prevent abuse
@@ -125,12 +138,13 @@ Total Points =
 This legacy leaderboard endpoint is part of the broader [Skatehive API](../../../README.md) ecosystem. For modern applications, consider using the V2 leaderboard endpoint at `/api/v2/leaderboard` which provides enhanced features and better performance.
 
 ### Migration Path
+
 - **V1 Legacy**: Current endpoint for backward compatibility
 - **V2 Modern**: Enhanced leaderboard with additional features
 - **Future Updates**: New scoring algorithms and community features
 
 By fostering a supportive and engaged community through transparent ranking and recognition, the Skatehive leaderboard helps make the skateboarding community stronger and more vibrant!
-| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet                          |
+| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet |
 
 ### **Total Points Formula**
 
@@ -188,12 +202,14 @@ create table public.leaderboard (
 ## Data Processing
 
 ### Data Sources
+
 - **Hive Blockchain**: User balances, posts, voting activity
 - **Ethereum**: Token balances, NFTs, donation history
 - **Witness Data**: Skatehive witness voting status
 - **Giveth**: Donation tracking and amounts
 
 ### Processing Steps
+
 1. **Fetch Hive Data**: Retrieve user balances and activity
 2. **Fetch Ethereum Data**: Get token balances and NFT holdings
 3. **Calculate Points**: Apply the point system formula
@@ -201,6 +217,7 @@ create table public.leaderboard (
 5. **Generate Rankings**: Order by total points
 
 ### Caching and Performance
+
 - **Batch Processing**: Handles multiple users efficiently
 - **Error Handling**: Continues processing if individual users fail
 - **Logging**: Comprehensive logging for debugging
@@ -211,16 +228,19 @@ create table public.leaderboard (
 ⚠️ **Legacy Endpoint**: This is a legacy endpoint maintained for backward compatibility.
 
 ### Recommended Migration
+
 For new integrations, use the modern V2 leaderboard endpoint:
+
 - **V2 Endpoint**: `/api/v2/leaderboard`
 - **Enhanced Features**: Better caching, pagination, filtering
 - **Improved Performance**: Optimized queries and response times
 - **Extended Data**: Additional metrics and user information
 
 ### V2 Advantages
+
 - **Real-time Updates**: More frequent data updates
 - **Better Error Handling**: Detailed error responses
-- **Pagination Support**: Handle large datasets efficiently  
+- **Pagination Support**: Handle large datasets efficiently
 - **Advanced Filtering**: Sort and filter by multiple criteria
 - **Enhanced Security**: Improved rate limiting and validation
 
@@ -259,11 +279,13 @@ GIVETH_API_URL=https://mainnet.serve.giveth.io/graphql
 ## Use Cases
 
 ### Data Refresh
+
 - **Manual Updates**: Trigger via POST request
 - **Scheduled Updates**: Use with cron jobs
 - **Community Events**: Update after major community activities
 
 ### Integration
+
 - **Frontend Display**: Fetch data for leaderboard UI
 - **Analytics**: Track community growth and engagement
 - **Rewards**: Base for token distribution or privileges
@@ -272,18 +294,21 @@ GIVETH_API_URL=https://mainnet.serve.giveth.io/graphql
 ## Support and Troubleshooting
 
 ### Common Issues
+
 - **Timeout Errors**: Data processing can take time, increase timeout limits
 - **Database Conflicts**: Ensure unique usernames and proper schema
 - **API Rate Limits**: Space out requests to avoid hitting limits
 - **Missing Data**: Some users may not have all data sources
 
 ### Debugging
+
 - Check server logs for detailed error information
 - Verify environment variables are properly set
 - Ensure database connectivity and schema is correct
 - Test individual data sources (Hive, Ethereum, Giveth) separately
 
 ### Getting Help
+
 - **GitHub Issues**: Report bugs and request features
 - **API Documentation**: Check `/docs` for interactive testing
 - **Community Support**: Skatehive Discord and community channels

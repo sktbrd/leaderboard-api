@@ -7,6 +7,7 @@ Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding
 **Skatehive** is the premier skateboarding community on the Hive blockchain, bringing together skaters from around the world to share content, earn rewards, and build a decentralized skateboarding ecosystem.
 
 ### 🛹 Community Features
+
 - **Decentralized Social Network**: Built on Hive blockchain for censorship resistance
 - **Earn While Skating**: Content creators earn HBD and HIVE tokens
 - **NFT Integration**: Skatehive NFTs and community tokens
@@ -16,6 +17,7 @@ Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding
 ## 🚀 API Overview
 
 ### 🏆 Core Features
+
 - **User Profiles & Social**: Comprehensive skater profiles with followers, following, and social interactions
 - **Content Management**: Skateboarding posts, videos, comments, and community updates
 - **SkateSnaps**: Short-form skateboarding content (like TikTok for skaters)
@@ -23,39 +25,46 @@ Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding
 - **Economic Data**: Token balances, rewards, market data, and wallet information
 - **Blockchain Integration**: Hive and Ethereum wallet data and interactions
 - **Skatespots**: Location-based skateboarding venue and spot information
+
 ### 🔥 Key API Categories
 
 #### 👥 **Social & Community**
+
 - User profiles with achievements and statistics
 - Followers/following relationships
 - Comments and community interactions
 - Social reputation and influence metrics
 
 #### 📱 **Content & Media**
+
 - General community feed with skateboarding content
 - SkateSnaps (short-form videos and photos)
 - Trending posts and viral content
 - User-specific content streams
 
 #### 🏆 **Gamification & Recognition**
+
 - Community leaderboard with comprehensive scoring
 - Achievement badges and recognition systems
 - Contribution tracking and rewards
 - Competition rankings and tournaments
 
 #### 💰 **Economy & Finance**
+
 - Hive wallet balances (HIVE, HBD, HP)
 - Resource credits and voting power
 - Token rewards and earnings tracking
 - Market data and price information
 
 #### 🌍 **Location & Discovery**
+
 - Skateboarding spots and locations worldwide
 - Venue information and community ratings
 - Geographic content discovery
 - Local community connections
 
 #### 🔧 **Blockchain Integration**
+
 - Hive blockchain operations (posts, votes, transfers)
 - Ethereum wallet integration and NFT tracking
 - Multi-chain asset management
@@ -64,17 +73,20 @@ Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding
 ### 🌐 API Architecture
 
 #### **V2 API** (Modern & Recommended)
+
 - **Enhanced Features**: Advanced functionality with optimized performance
 - **Comprehensive Data**: Rich response formats with detailed metadata
 - **Modern Standards**: RESTful design with consistent patterns
 - **Real-time Integration**: Live blockchain data with smart caching
 
 #### **V1 API** (Legacy Support)
+
 - **Backward Compatibility**: Maintained for existing integrations
 - **Stable Interface**: Proven endpoints with reliable performance
 - **Migration Path**: Clear upgrade path to V2 features
 
 #### **Utility Endpoints**
+
 - **Ethereum Integration**: Multi-chain asset and NFT tracking
 - **Maintenance Operations**: Cron jobs and data synchronization
 - **Developer Tools**: Testing and debugging utilities
@@ -82,12 +94,14 @@ Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding
 ## 📚 Quick Links
 
 ### 🔧 Developer Resources
+
 - **📖 Interactive API Docs**: [http://localhost:3000/docs](http://localhost:3000/docs) (Swagger UI)
 - **🎯 API Overview**: [http://localhost:3000/api/v2](http://localhost:3000/api/v2)
 - **📋 API Routes Documentation**: [src/app/api/README.md](src/app/api/README.md)
 - **🧪 Testing Suite**: [tests/README.md](tests/README.md)
 
 ### 🌍 Live API
+
 - **Production API**: https://api.skatehive.app
 - **Community Data**: https://api.skatehive.app/api/skatehive
 - **Skatehive Website**: https://skatehive.app
@@ -261,7 +275,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 The Skatehive API aims to:
 
 - **Empower the Community**: Provide comprehensive tools for skateboarding community interaction and growth
-- **Blockchain Integration**: Seamlessly connect Hive and Ethereum blockchain data for multi-chain experiences  
+- **Blockchain Integration**: Seamlessly connect Hive and Ethereum blockchain data for multi-chain experiences
 - **Content Discovery**: Enable easy discovery of skateboarding content, creators, and communities
 - **Economic Transparency**: Track contributions, rewards, and economic activity within the ecosystem
 - **Social Connections**: Foster relationships between skaters worldwide through profiles and social features
@@ -281,33 +295,41 @@ The Skatehive API aims to:
 ## 📊 Featured Systems
 
 ### 🏆 Community Leaderboard
+
 The leaderboard system ranks users based on comprehensive contributions to the Skatehive ecosystem. See the [Leaderboard Documentation](src/app/api/leaderboard/README.md) for detailed scoring information.
 
 ### 📱 SkateSnaps
+
 Short-form skateboarding content system designed for quick sharing and discovery of skateboarding moments, tricks, and community highlights.
 
 ### 🌍 Skatespots
+
 Location-based system for discovering and sharing information about skateboarding locations, parks, and spots worldwide.
 
 ### 💰 Economic Integration
+
 Comprehensive tracking of Hive and Ethereum assets, including tokens, NFTs, donations, and reward distributions.
 
 ### 💰 Economic Integration
+
 Comprehensive tracking of Hive and Ethereum assets, including tokens, NFTs, donations, and reward distributions.
 
 ## 🔧 Technical Architecture
 
 ### 🗄️ Database Systems
+
 - **HAFSQL**: Primary database for Hive blockchain data
 - **HiveSQL**: Alternative Hive data access for complex queries
 - **Supabase**: Legacy data storage and real-time features
 
 ### 🔗 Blockchain Integration
+
 - **Hive Blockchain**: Social features, content, and rewards
 - **Ethereum Network**: NFTs, tokens, and donation tracking
 - **Multi-chain Support**: Cross-chain asset and activity tracking
 
 ### 📡 External Services
+
 - **Market Data**: Real-time price feeds and market information
 - **IPFS**: Decentralized media storage and delivery
 - **Analytics**: Community growth and engagement metrics
