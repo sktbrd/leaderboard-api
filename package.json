@@ -1,6 +1,7 @@
 {
-  "name": "skatehive-app-api",
-  "version": "0.0.1",
+  "name": "skatehive-api",
+  "version": "1.0.0",
+  "description": "Comprehensive REST API for the Skatehive skateboarding community on Hive blockchain",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -H 0.0.0.0",

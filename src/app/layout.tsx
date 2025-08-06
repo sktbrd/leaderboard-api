@@ -4,20 +4,17 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Skatehive API",
-  description: "API for Skatehive leaderboard",
+  description: "API for Skatehive",
 };
 
 export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-
   return (
     <html lang="en">
-      <body>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

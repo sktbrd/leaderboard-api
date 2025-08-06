@@ -1,6 +1,97 @@
-# 🛹 Skatehive Leaderboard
+# 🛹 Skatehive API
 
-Welcome to the Skatehive Leaderboard project! This application is designed to create a leaderboard for the Skatehive community, integrating data from Hive and Ethereum blockchains, and Supabase database.
+Welcome to the **Skatehive API**! A comprehensive REST API for the skateboarding community on the Hive blockchain. This application provides access to community data, user profiles, content feeds, social interactions, economic data, and much more for the Skatehive community (hive-173115).
+
+## 🎯 What is Skatehive?
+
+**Skatehive** is the premier skateboarding community on the Hive blockchain, bringing together skaters from around the world to share content, earn rewards, and build a decentralized skateboarding ecosystem.
+
+### 🛹 Community Features
+- **Decentralized Social Network**: Built on Hive blockchain for censorship resistance
+- **Earn While Skating**: Content creators earn HBD and HIVE tokens
+- **NFT Integration**: Skatehive NFTs and community tokens
+- **Global Community**: Skaters from every continent sharing their passion
+- **Multi-chain Support**: Hive blockchain + Ethereum integration
+
+## 🚀 API Overview
+
+### 🏆 Core Features
+- **User Profiles & Social**: Comprehensive skater profiles with followers, following, and social interactions
+- **Content Management**: Skateboarding posts, videos, comments, and community updates
+- **SkateSnaps**: Short-form skateboarding content (like TikTok for skaters)
+- **Community Leaderboard**: Ranking system based on contributions and engagement
+- **Economic Data**: Token balances, rewards, market data, and wallet information
+- **Blockchain Integration**: Hive and Ethereum wallet data and interactions
+- **Skatespots**: Location-based skateboarding venue and spot information
+### 🔥 Key API Categories
+
+#### 👥 **Social & Community**
+- User profiles with achievements and statistics
+- Followers/following relationships
+- Comments and community interactions
+- Social reputation and influence metrics
+
+#### 📱 **Content & Media**
+- General community feed with skateboarding content
+- SkateSnaps (short-form videos and photos)
+- Trending posts and viral content
+- User-specific content streams
+
+#### 🏆 **Gamification & Recognition**
+- Community leaderboard with comprehensive scoring
+- Achievement badges and recognition systems
+- Contribution tracking and rewards
+- Competition rankings and tournaments
+
+#### 💰 **Economy & Finance**
+- Hive wallet balances (HIVE, HBD, HP)
+- Resource credits and voting power
+- Token rewards and earnings tracking
+- Market data and price information
+
+#### 🌍 **Location & Discovery**
+- Skateboarding spots and locations worldwide
+- Venue information and community ratings
+- Geographic content discovery
+- Local community connections
+
+#### 🔧 **Blockchain Integration**
+- Hive blockchain operations (posts, votes, transfers)
+- Ethereum wallet integration and NFT tracking
+- Multi-chain asset management
+- Donation tracking and philanthropy features
+
+### 🌐 API Architecture
+
+#### **V2 API** (Modern & Recommended)
+- **Enhanced Features**: Advanced functionality with optimized performance
+- **Comprehensive Data**: Rich response formats with detailed metadata
+- **Modern Standards**: RESTful design with consistent patterns
+- **Real-time Integration**: Live blockchain data with smart caching
+
+#### **V1 API** (Legacy Support)
+- **Backward Compatibility**: Maintained for existing integrations
+- **Stable Interface**: Proven endpoints with reliable performance
+- **Migration Path**: Clear upgrade path to V2 features
+
+#### **Utility Endpoints**
+- **Ethereum Integration**: Multi-chain asset and NFT tracking
+- **Maintenance Operations**: Cron jobs and data synchronization
+- **Developer Tools**: Testing and debugging utilities
+
+## 📚 Quick Links
+
+### 🔧 Developer Resources
+- **📖 Interactive API Docs**: [http://localhost:3000/docs](http://localhost:3000/docs) (Swagger UI)
+- **🎯 API Overview**: [http://localhost:3000/api/v2](http://localhost:3000/api/v2)
+- **📋 API Routes Documentation**: [src/app/api/README.md](src/app/api/README.md)
+- **🧪 Testing Suite**: [tests/README.md](tests/README.md)
+
+### 🌍 Live API
+- **Production API**: https://api.skatehive.app
+- **Community Data**: https://api.skatehive.app/api/skatehive
+- **Skatehive Website**: https://skatehive.app
+- **Hive Community**: https://peakd.com/c/hive-173115
 
 ## 📁 Project Structure
 
@@ -69,8 +160,8 @@ Welcome to the Skatehive Leaderboard project! This application is designed to cr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/skatehive-leaderboard.git
-cd skatehive-leaderboard
+git clone https://github.com/sktbrd/skatehive-api.git
+cd skatehive-api
 ```
 
 2. Install dependencies:
@@ -165,63 +256,61 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-## 🎯 Goals of the API
+## 🎯 Goals of the Skatehive API
 
-The Skatehive Leaderboard API aims to:
+The Skatehive API aims to:
 
-- Aggregate data from Hive and Ethereum blockchains.
-- Provide a leaderboard for the Skatehive community.
-- Enhance community engagement by showcasing top contributors.
+- **Empower the Community**: Provide comprehensive tools for skateboarding community interaction and growth
+- **Blockchain Integration**: Seamlessly connect Hive and Ethereum blockchain data for multi-chain experiences  
+- **Content Discovery**: Enable easy discovery of skateboarding content, creators, and communities
+- **Economic Transparency**: Track contributions, rewards, and economic activity within the ecosystem
+- **Social Connections**: Foster relationships between skaters worldwide through profiles and social features
+- **Innovation Platform**: Serve as the foundation for skateboarding dApps and community tools
 
 ## 🌟 Benefits for the Community
 
-- **Transparency**: Easily track and verify contributions.
-- **Recognition**: Highlight top contributors and their achievements.
-- **Engagement**: Foster a competitive and collaborative environment.
+## 🌟 Benefits for the Community
 
-## 🏋️ Skatehive Point System
+- **Transparency**: Easily track and verify all community contributions and activities
+- **Recognition**: Highlight top contributors, content creators, and community leaders
+- **Engagement**: Foster competitive and collaborative environment through gamification
+- **Accessibility**: Provide easy-to-use API for developers building skateboarding applications
+- **Decentralization**: Leverage blockchain technology for censorship-resistant community building
+- **Innovation**: Enable new use cases and applications for the skateboarding community
 
-We’ve developed a point system to rank users based on their support and contributions to the Skatehive community. Here’s how it works:
+## 📊 Featured Systems
 
-### **Point Categories**
+### 🏆 Community Leaderboard
+The leaderboard system ranks users based on comprehensive contributions to the Skatehive ecosystem. See the [Leaderboard Documentation](src/app/api/leaderboard/README.md) for detailed scoring information.
 
-| **Category**              | **Points**                                                              |
-| ------------------------- | ----------------------------------------------------------------------- |
-| **Hive Balance**          | 0.1 points per Hive, capped at 1,000 Hive (max 100 points)              |
-| **Hive Power (HP)**       | 0.5 points per HP, capped at 12,000 HP (max 6,000 points)               |
-| **Gnars Votes**           | 30 points per Gnars Vote                                                |
-| **Skatehive NFTs**        | 50 points per Skatehive NFT                                             |
-| **Witness Vote**          | 1000 points for voting for the Skatehive witness                        |
-| **HBD Savings**           | 0.2 points per HBD in savings, capped at 1,000 HBD (max 200 points)     |
-| **Number of Posts**       | 0.1 points per post, capped at 3,000 posts (max 300 points)             |
-| **Voting Power**          | 1000 points per USD of voting power                                     |
-| **Giveth Donations**      | 5 points per USD donated, capped at 1,000 USD (max 5,000 points)        |
-| **Last Post Activity**    | 0 points deducted if last post within 7 days, up to 100 points deducted |
-| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet                          |
+### 📱 SkateSnaps
+Short-form skateboarding content system designed for quick sharing and discovery of skateboarding moments, tricks, and community highlights.
 
-### **Total Points Formula**
+### 🌍 Skatespots
+Location-based system for discovering and sharing information about skateboarding locations, parks, and spots worldwide.
 
-```
-Total Points =
-(Capped Hive Points) +
-(Capped HP Points) +
-(Gnars Votes Points) +
-(Skatehive NFT Points) +
-(Witness Vote Points) +
-(Capped HBD Savings Points) +
-(Capped Post Points) +
-(Voting Power Points) -
-(Inactivity Penalty) +
-(Ethereum Wallet Bonus)
-```
+### 💰 Economic Integration
+Comprehensive tracking of Hive and Ethereum assets, including tokens, NFTs, donations, and reward distributions.
 
-### **Benefits of the Point System**
+### 💰 Economic Integration
+Comprehensive tracking of Hive and Ethereum assets, including tokens, NFTs, donations, and reward distributions.
 
-- **Recognition**: Reward top contributors.
-- **Engagement**: Encourage active participation.
-- **Transparency**: Users can see how their contributions are valued.
+## 🔧 Technical Architecture
 
-By fostering a supportive and engaged community, we make Skatehive stronger and more vibrant!
+### 🗄️ Database Systems
+- **HAFSQL**: Primary database for Hive blockchain data
+- **HiveSQL**: Alternative Hive data access for complex queries
+- **Supabase**: Legacy data storage and real-time features
+
+### 🔗 Blockchain Integration
+- **Hive Blockchain**: Social features, content, and rewards
+- **Ethereum Network**: NFTs, tokens, and donation tracking
+- **Multi-chain Support**: Cross-chain asset and activity tracking
+
+### 📡 External Services
+- **Market Data**: Real-time price feeds and market information
+- **IPFS**: Decentralized media storage and delivery
+- **Analytics**: Community growth and engagement metrics
 
 ## 📚 Learn More
 
