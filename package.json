@@ -20,6 +20,7 @@
     "pg": "^8.14.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "swagger-ui-react": "^5.27.1",
     "viem": "^2.22.9"
   },
   "devDependencies": {
@@ -29,6 +30,7 @@
     "@types/pg": "^8.11.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-react": "^5.18.0",
     "@typescript-eslint/eslint-plugin": "^8.31.0",
     "@typescript-eslint/parser": "^8.31.0",
     "eslint": "^9.25.1",
