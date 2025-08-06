@@ -2,7 +2,7 @@ import { matchAndUpsertDonors } from '@/app/utils/ethereum/giveth';
 import { fetchSubscribers } from '@/app/utils/hive/fetchSubscribers';
 import { logWithColor } from '@/app/utils/hive/hiveUtils';
 import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fetchCommunityPosts } from '@/app/utils/hive/fetchCommunityPosts';
 import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 import { calculateAndUpsertPoints, calculateAndUpsertPointsBatch, fetchAndUpsertAccountData, removeUnsubscribedAuthors, upsertAuthors } from './dataManager';

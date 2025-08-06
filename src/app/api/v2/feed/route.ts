@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { normalizePost, Comment } from './helpers';
 
@@ -162,7 +162,7 @@ async function updateCacheInBackground(
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   console.log('Fetching MAIN FEED data...');
 
   const { searchParams } = new URL(request.url);

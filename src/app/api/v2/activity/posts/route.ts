@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { fetchCommunityPosts } from '@/app/utils/hive/fetchCommunityPosts';
 
@@ -12,7 +12,7 @@ const MULTIPLIER_POSTS = 1.5;
 const MULTIPLIER_VOTES = 0.2;
 const MULTIPLIER_PAYOUT = 10;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const COMMUNITY = searchParams.get('community_code') || process.env.MY_COMMUNITY_CATEGORY || 'hive-173115';

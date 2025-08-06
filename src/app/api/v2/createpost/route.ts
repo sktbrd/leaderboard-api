@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { CommentOperation, PrivateKey } from '@hiveio/dhive';
 import { HiveClient } from '@/lib/hive-client';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
@@ -10,7 +10,7 @@ function new_permlink() {
   return new Date().toISOString().replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (DEBUG) console.log('Received POST request');
 
   const postingKey = request.headers.get('Authorization')?.replace("Bearer ", "");

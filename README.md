@@ -97,6 +97,37 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## 📚 API Documentation & Testing
+
+### API Documentation
+
+Access the comprehensive API documentation with interactive Swagger UI:
+
+- **Documentation**: [http://localhost:3000/docs](http://localhost:3000/docs)
+- **API Overview**: [http://localhost:3000/api/v2](http://localhost:3000/api/v2)
+
+### Testing Suite
+
+The project includes a comprehensive testing suite in the `/tests` directory:
+
+```bash
+# Run full API test suite
+bash tests/live-test.sh
+
+# Quick health check
+bash tests/quick-status-check.sh
+
+# Individual endpoint testing
+bash tests/test-api-endpoints.sh
+```
+
+See `/tests/README.md` for detailed testing documentation.
+
+### API Versions
+
+- **V2 API**: Modern endpoints at `/api/v2/*` (recommended)
+- **V1 API**: Legacy endpoints at `/api/v1/*` (maintained for compatibility)
+
 ### Setting Up Supabase
 
 1. Create a new project on [Supabase](https://supabase.com/).
@@ -153,19 +184,20 @@ The Skatehive Leaderboard API aims to:
 We’ve developed a point system to rank users based on their support and contributions to the Skatehive community. Here’s how it works:
 
 ### **Point Categories**
-| **Category**              | **Points**                                                                 |
-|---------------------------|----------------------------------------------------------------------------|
-| **Hive Balance**          | 0.1 points per Hive, capped at 1,000 Hive (max 100 points)                 |
-| **Hive Power (HP)**       | 0.5 points per HP, capped at 12,000 HP (max 6,000 points)                  |
-| **Gnars Votes**           | 30 points per Gnars Vote                                                   |
-| **Skatehive NFTs**        | 50 points per Skatehive NFT                                                |
-| **Witness Vote**          | 1000 points for voting for the Skatehive witness                           |
-| **HBD Savings**           | 0.2 points per HBD in savings, capped at 1,000 HBD (max 200 points)        |
-| **Number of Posts**       | 0.1 points per post, capped at 3,000 posts (max 300 points)                |
-| **Voting Power**          | 1000 points per USD of voting power                                        |
-| **Giveth Donations**      | 5 points per USD donated, capped at 1,000 USD (max 5,000 points)           |
-| **Last Post Activity**    | 0 points deducted if last post within 7 days, up to 100 points deducted    |
-| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet                             |
+
+| **Category**              | **Points**                                                              |
+| ------------------------- | ----------------------------------------------------------------------- |
+| **Hive Balance**          | 0.1 points per Hive, capped at 1,000 Hive (max 100 points)              |
+| **Hive Power (HP)**       | 0.5 points per HP, capped at 12,000 HP (max 6,000 points)               |
+| **Gnars Votes**           | 30 points per Gnars Vote                                                |
+| **Skatehive NFTs**        | 50 points per Skatehive NFT                                             |
+| **Witness Vote**          | 1000 points for voting for the Skatehive witness                        |
+| **HBD Savings**           | 0.2 points per HBD in savings, capped at 1,000 HBD (max 200 points)     |
+| **Number of Posts**       | 0.1 points per post, capped at 3,000 posts (max 300 points)             |
+| **Voting Power**          | 1000 points per USD of voting power                                     |
+| **Giveth Donations**      | 5 points per USD donated, capped at 1,000 USD (max 5,000 points)        |
+| **Last Post Activity**    | 0 points deducted if last post within 7 days, up to 100 points deducted |
+| **Ethereum Wallet Bonus** | 5000 points for having a valid Ethereum wallet                          |
 
 ### **Total Points Formula**
 

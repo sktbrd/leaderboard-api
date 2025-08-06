@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fetchAndStoreAllData } from '@/app/utils/dataManager';
 import { logWithColor } from '@/app/utils/hive/hiveUtils';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
         // Get community from URL parameters if needed
         const { searchParams } = new URL(request.url);
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { community } = body;

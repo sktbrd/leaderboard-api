@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 
 const db = new HAFSQL_Database();
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Get query parameters from URL
     const { searchParams } = new URL(request.url);

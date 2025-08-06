@@ -1,5 +1,5 @@
 import { getLeaderboard } from '@/app/utils/supabase/getLeaderboard';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 
 export async function GET() {

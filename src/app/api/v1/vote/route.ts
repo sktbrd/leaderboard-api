@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrivateKey } from '@hiveio/dhive';
 import { HiveClient } from '@/lib/hive-client';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const client = HiveClient;
 
   try {

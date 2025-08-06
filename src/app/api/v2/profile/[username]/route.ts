@@ -4,10 +4,14 @@ import { HiveClient } from '@/lib/hive-client';
 
 const db = new HAFSQL_Database();
 
-export async function GET(request: Request, { params }: { params: { username: string } }) {
+export async function GET(
+  request: NextRequest, 
+  { params }: { params: Promise<{ username: string }> }
+) {
   console.log("Fetching profile data...");
   try {
-    const username = params.username || "SPECTATOR";
+    const { username } = await params;
+    const resolvedUsername = username || "SPECTATOR";
     
     // Get account information
     const { rows, headers } = await db.executeQuery(`
@@ -34,7 +38,7 @@ export async function GET(request: Request, { params }: { params: { username: st
         a.proxy,
         a.last_update
       FROM accounts a
-      WHERE a.name = '${username}'
+      WHERE a.name = '${resolvedUsername}'
     `);
 
     if (!rows || rows.length === 0) {
@@ -51,7 +55,7 @@ export async function GET(request: Request, { params }: { params: { username: st
     const { rows: totalPostsRows } = await db.executeQuery(`
       SELECT COUNT(*) AS total
       FROM comments c
-      WHERE c.author = '${username}'
+      WHERE c.author = '${resolvedUsername}'
       AND c.parent_permlink SIMILAR TO 'snap-container-%'
       AND c.json_metadata @> '{"tags": ["hive-173115"]}'
       AND c.deleted = false;
@@ -64,7 +68,7 @@ SELECT Count(f.following_name)
 FROM follows f
 JOIN community_subs cs ON f.following_name = cs.account_name 
 WHERE 
-f.follower_name = '${username}' AND
+f.follower_name = '${resolvedUsername}' AND
 cs.community_name = 'hive-173115';
           `);
 
@@ -74,13 +78,13 @@ SELECT Count(f.follower_name)
 FROM follows f
 JOIN community_subs cs ON f.follower_name = cs.account_name 
 WHERE 
-f.following_name = '${username}' AND
+f.following_name = '${resolvedUsername}' AND
 cs.community_name = 'hive-173115';
       `);
 
 
-    const hiverc = await HiveClient.rc.getRCMana(username);
-    const hiveMana = await HiveClient.rc.getVPMana(username);
+    const hiverc = await HiveClient.rc.getRCMana(resolvedUsername);
+    const hiveMana = await HiveClient.rc.getVPMana(resolvedUsername);
     const vp_percent = `${hiveMana.percentage / 100}%`
     const rc_percent = `${hiverc.percentage / 100}%`
 

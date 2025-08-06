@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { HAFSQL_Database } from '@/lib/hafsql_database';
 import { fetchCommunitySnaps } from '@/app/utils/hive/fetchCommunitySnaps';
 
@@ -7,7 +7,7 @@ const db = new HAFSQL_Database();
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_LIMIT = 2000;
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const COMMUNITY = searchParams.get('community_code') || 'hive-173115';

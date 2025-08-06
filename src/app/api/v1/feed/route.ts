@@ -1,7 +1,7 @@
 /*
     Main Feed 
   */
-  import { NextResponse } from 'next/server';
+  import { NextRequest, NextResponse } from 'next/server';
   import { HAFSQL_Database } from '@/lib/hafsql_database';
   
   const db = new HAFSQL_Database();
@@ -9,7 +9,7 @@
   const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
   const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
   
-  export async function GET(request: Request) {
+  export async function GET(request: NextRequest) {
     console.log("Fetching MAIN FEED data...");
     try {
       // Get pagination parameters from URL
