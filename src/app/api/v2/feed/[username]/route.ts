@@ -11,20 +11,19 @@ const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
 export async function GET(
     request: NextRequest,
+    { params }: { params: { username: string } }
 ) {
     console.log("Fetching USER FEED data...");
     try {
-        const { searchParams } = new URL(request.url);
-        const username = searchParams.get('username');
+        const username = params.username;
+        const searchParams = request.nextUrl.searchParams;
 
-        // Get pagination parameters from URL
-        // const { searchParams } = new URL(request.url);
-        const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-        const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
+        const page = Number(searchParams.get('page')) || 1;
+        const limit = Number(searchParams.get('limit')) || 25;
         const offset = (page - 1) * limit;
 
         // Get total count for pagination
-        const {rows: totalRows} = await db.executeQuery(`
+        const { rows: totalRows } = await db.executeQuery(`
 SELECT COUNT(*) AS total
 FROM comments c
 WHERE c.author = '${username}'
@@ -36,7 +35,7 @@ AND c.deleted = false;
         const total = parseInt(totalRows[0].total);
 
         // Get paginated data
-        const {rows, headers} = await db.executeQuery(`
+        const { rows, headers } = await db.executeQuery(`
 SELECT 
     c.body, 
     c.author, 
