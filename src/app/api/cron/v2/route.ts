@@ -58,7 +58,7 @@ const updateLeaderboardData = async () => {
             subscribers.some(data => data.hive_author === subscriber.hive_author)
 
             // Debug specific user
-            // subscribers.some(data => "xvlad" === subscriber.hive_author)
+            // subscribers.some(data => "vaipraonde" === subscriber.hive_author)
         );
 
     
