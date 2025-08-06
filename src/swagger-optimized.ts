@@ -68,6 +68,28 @@ export const swaggerDocument = {
         summary: 'Fetch and store leaderboard data for a community'
       })
     },
+    '/api/v1/feed': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'This is the one we are using with UseSnaps in skatehive.app',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
+    // v1 feed [username] endpoints
+    '/api/v1/feed/{username}': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get user-specific feed by username',
+        parameters: [
+          { $ref: '#/components/parameters/UsernameParam' },
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
 
     // V2 Core Endpoints
     '/api/v2': {
