@@ -1,6 +1,6 @@
-# 🛹 Skatehive Leaderboard API Routes
+# 🛹 Skatehive API Routes
 
-This folder contains all API routes for the Skatehive Leaderboard application. The API is organized into different versions and categories to provide comprehensive access to skateboarding community data from the Hive blockchain and Ethereum.
+This folder contains all API routes for the Skatehive application. The API is organized into different versions and categories to provide comprehensive access to skateboarding community data from the Hive blockchain and Ethereum.
 
 ## 📚 API Documentation
 

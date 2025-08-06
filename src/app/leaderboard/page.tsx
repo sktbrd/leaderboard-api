@@ -21,7 +21,7 @@ interface LeaderboardRow {
   points: number | null;
 }
 
-export default function HomePage() {
+export default function Leaderboard() {
   const [sortField, setSortField] = useState<keyof LeaderboardRow>("points");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([]);

@@ -4,7 +4,7 @@ import { commonSchemas, createEndpoint } from './swagger-schemas';
 export const swaggerDocument = {
   openapi: '3.0.0',
   info: {
-    title: 'Skatehive Leaderboard API',
+    title: 'Skatehive API',
     version: '2.0.0',
     description: 'Complete API documentation for Skatehive Leaderboard with V1 and V2 endpoints',
   },
@@ -15,7 +15,10 @@ export const swaggerDocument = {
     { name: 'V2 Social', description: 'V2 Social endpoints - followers, following, profiles' },
     { name: 'V2 Wallet', description: 'V2 Wallet endpoints - balances and financial data' },
     { name: 'V2 SkateSnaps', description: 'V2 SkateSnaps endpoints - short-form content' },
-    { name: 'V2 Utilities', description: 'V2 Utility endpoints - voting, comments, spots' }
+    { name: 'V2 Activity', description: 'V2 Activity endpoints - user activities and stats' },
+    { name: 'V2 Content', description: 'V2 Content endpoints - magazines, skatefeed, and content management' },
+    { name: 'V2 Utilities', description: 'V2 Utility endpoints - voting, comments, spots' },
+    { name: 'Cron Jobs', description: 'Scheduled task endpoints for data updates' }
   ],
   ...commonSchemas,
   paths: {
@@ -78,7 +81,6 @@ export const swaggerDocument = {
         ]
       })
     },
-    // v1 feed [username] endpoints
     '/api/v1/feed/{username}': {
       get: createEndpoint({
         tags: ['V1 Legacy'],
@@ -88,6 +90,80 @@ export const swaggerDocument = {
           { $ref: '#/components/parameters/PageParam' },
           { $ref: '#/components/parameters/LimitParam' }
         ]
+      })
+    },
+
+    // Additional V1 Legacy Endpoints
+    '/api/v1': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'V1 API overview and available endpoints'
+      })
+    },
+    '/api/v1/leaderboard': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get V1 leaderboard data'
+      })
+    },
+    '/api/v1/balance/{username}': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get user balance (V1)',
+        parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
+      })
+    },
+    '/api/v1/profile/{username}': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get user profile (V1)',
+        parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
+      })
+    },
+    '/api/v1/followers/{username}': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get user followers (V1)',
+        parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
+      })
+    },
+    '/api/v1/following/{username}': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get users that a user is following (V1)',
+        parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
+      })
+    },
+    '/api/v1/comments': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get comments (V1)',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      }),
+      post: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Create a new comment (V1)'
+      })
+    },
+    '/api/v1/createpost': {
+      post: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Create a new post (V1)'
+      })
+    },
+    '/api/v1/market': {
+      get: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Get market data (V1)'
+      })
+    },
+    '/api/v1/vote': {
+      post: createEndpoint({
+        tags: ['V1 Legacy'],
+        summary: 'Cast a vote on content (V1)'
       })
     },
 
@@ -142,6 +218,17 @@ export const swaggerDocument = {
         ]
       })
     },
+    '/api/v2/feed/{username}/following': {
+      get: createEndpoint({
+        tags: ['V2 Feed'],
+        summary: 'Get feed from users that the specified user is following',
+        parameters: [
+          { $ref: '#/components/parameters/UsernameParam' },
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
     '/api/v2/feed/trending': {
       get: createEndpoint({
         tags: ['V2 Feed'],
@@ -177,6 +264,13 @@ export const swaggerDocument = {
         parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
       })
     },
+    '/api/v2/balance/{username}/rewards': {
+      get: createEndpoint({
+        tags: ['V2 Wallet'],
+        summary: 'Get user rewards information',
+        parameters: [{ $ref: '#/components/parameters/UsernameParam' }]
+      })
+    },
 
     // V2 SkateSnaps Endpoints
     '/api/v2/skatesnaps': {
@@ -200,10 +294,65 @@ export const swaggerDocument = {
         ]
       })
     },
+    '/api/v2/skatesnaps/{username}/following': {
+      get: createEndpoint({
+        tags: ['V2 SkateSnaps'],
+        summary: 'Get skate snaps from users that the specified user is following',
+        parameters: [
+          { $ref: '#/components/parameters/UsernameParam' },
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
     '/api/v2/skatesnaps/trending': {
       get: createEndpoint({
         tags: ['V2 SkateSnaps'],
         summary: 'Get trending skate snaps',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
+
+    // V2 Activity Endpoints
+    '/api/v2/activity/posts': {
+      get: createEndpoint({
+        tags: ['V2 Activity'],
+        summary: 'Get user post activity',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
+    '/api/v2/activity/snaps': {
+      get: createEndpoint({
+        tags: ['V2 Activity'],
+        summary: 'Get user snaps activity',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
+
+    // V2 Content Endpoints
+    '/api/v2/magazine': {
+      get: createEndpoint({
+        tags: ['V2 Content'],
+        summary: 'Get magazine content',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' }
+        ]
+      })
+    },
+    '/api/v2/skatefeed': {
+      get: createEndpoint({
+        tags: ['V2 Content'],
+        summary: 'Get skatefeed content',
         parameters: [
           { $ref: '#/components/parameters/PageParam' },
           { $ref: '#/components/parameters/LimitParam' }
@@ -259,6 +408,26 @@ export const swaggerDocument = {
           { $ref: '#/components/parameters/PageParam' },
           { $ref: '#/components/parameters/LimitParam' }
         ]
+      })
+    },
+
+    // Cron Job Endpoints
+    '/api/cron/update': {
+      post: createEndpoint({
+        tags: ['Cron Jobs'],
+        summary: 'Trigger manual data update (cron job)'
+      })
+    },
+    '/api/cron/v2': {
+      post: createEndpoint({
+        tags: ['Cron Jobs'],
+        summary: 'Trigger V2 data update (cron job)'
+      })
+    },
+    '/api/cron/v2/leaderboard': {
+      post: createEndpoint({
+        tags: ['Cron Jobs'],
+        summary: 'Trigger V2 leaderboard update (cron job)'
       })
     }
   }
