@@ -11,11 +11,11 @@ const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { username: string } }
+    { params }: { params: Promise<{ username: string }> }
 ) {
     console.log("Fetching USER FEED data...");
     try {
-        const username = params.username;
+        const { username } = await params;
         const searchParams = request.nextUrl.searchParams;
 
         const page = Number(searchParams.get('page')) || 1;
