@@ -9,35 +9,55 @@ const db = new HAFSQL_Database();
 const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
 const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
 
+// Validate and sanitize username to prevent SQL injection
+function validateUsername(username: string): string | null {
+    // Hive usernames: 3-16 chars, lowercase, can contain dots and numbers (but not start with number)
+    const usernameRegex = /^[a-z][a-z0-9.-]{2,15}$/;
+    if (!usernameRegex.test(username)) {
+        return null;
+    }
+    return username;
+}
+
 export async function GET(
-  request: NextRequest,
+    request: NextRequest,
 ) {
     console.log("Fetching USER FEED data...");
     try {
         const searchParams = request.nextUrl.searchParams;
         const pathname = request.url; // e.g., "/api/v1/feed/vaipraonde"
         const parts = pathname.split('/');
-        const username = parts[parts.length - 1];
+        const rawUsername = parts[parts.length - 1];
+
+        // Validate username before using in query
+        const username = validateUsername(rawUsername);
+        if (!username) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid username format' },
+                { status: 400 }
+            );
+        }
+
         // Get pagination parameters from URL
         // const { searchParams } = new URL(request.url);
         const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-        const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
+        const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT))); // Cap at 100
         const offset = (page - 1) * limit;
 
-        // Get total count for pagination
-        const {rows: totalRows} = await db.executeQuery(`
+        // Get total count for pagination (using parameterized query)
+        const { rows: totalRows } = await db.executeQuery(`
 SELECT COUNT(*) AS total
 FROM comments c
-WHERE c.author = '${username}'
+WHERE c.author = @username
 AND c.parent_permlink SIMILAR TO 'snap-container-%'
 AND c.json_metadata @> '{"tags": ["hive-173115"]}'
 AND c.deleted = false;
-      `);
+      `, [{ name: 'username', value: username }]);
 
         const total = parseInt(totalRows[0].total);
 
-        // Get paginated data
-        const {rows, headers} = await db.executeQuery(`
+        // Get paginated data (using parameterized query)
+        const { rows, headers } = await db.executeQuery(`
 SELECT 
     c.body, 
     c.author, 
@@ -93,7 +113,7 @@ LEFT JOIN accounts a ON c.author = a.name
 LEFT JOIN operation_effective_comment_vote_view v 
     ON c.author = v.author 
     AND c.permlink = v.permlink
-WHERE c.author = '${username}'
+WHERE c.author = @username
 AND c.parent_permlink SIMILAR TO 'snap-container-%'
 AND c.json_metadata @> '{"tags": ["hive-173115"]}'
 AND c.deleted = false
@@ -133,9 +153,13 @@ GROUP BY
     a.followers, 
     a.followings
 ORDER BY c.created DESC
-LIMIT ${limit}
-OFFSET ${offset};
-`);
+LIMIT @limit
+OFFSET @offset;
+`, [
+            { name: 'username', value: username },
+            { name: 'limit', value: limit },
+            { name: 'offset', value: offset }
+        ]);
 
         // Calculate pagination metadata
         const totalPages = Math.ceil(total / limit);

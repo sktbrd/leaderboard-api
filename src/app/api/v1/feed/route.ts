@@ -1,35 +1,35 @@
 /*
     Main Feed 
   */
-  import { NextRequest, NextResponse } from 'next/server';
-  import { HAFSQL_Database } from '@/lib/hafsql_database';
-  
-  const db = new HAFSQL_Database();
-  
-  const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
-  const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
-  
-  export async function GET(request: NextRequest) {
-    console.log("Fetching MAIN FEED data...");
-    try {
-      // Get pagination parameters from URL
-      const { searchParams } = new URL(request.url);
-      const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
-      const limit = Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT));
-      const offset = (page - 1) * limit;
-  
-      // Get total count for pagination
-      const {rows: totalRows} = await db.executeQuery(`
+import { NextRequest, NextResponse } from 'next/server';
+import { HAFSQL_Database } from '@/lib/hafsql_database';
+
+const db = new HAFSQL_Database();
+
+const DEFAULT_PAGE = Number(process.env.DEFAULT_PAGE) || 1;
+const DEFAULT_FEED_LIMIT = Number(process.env.DEFAULT_FEED_LIMIT) || 25;
+
+export async function GET(request: NextRequest) {
+  console.log("Fetching MAIN FEED data...");
+  try {
+    // Get pagination parameters from URL
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, Number(searchParams.get('page')) || Number(DEFAULT_PAGE));
+    const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || Number(DEFAULT_FEED_LIMIT))); // Cap at 100
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination
+    const { rows: totalRows } = await db.executeQuery(`
         SELECT COUNT(*) as total
         FROM comments
         WHERE parent_permlink SIMILAR TO 'snap-container-%'
         AND json_metadata @> '{"tags": ["hive-173115"]}'
       `);
-      
-      const total = parseInt(totalRows[0].total);
-  
-      // Get paginated parent comments
-      const {rows: parentComments} = await db.executeQuery(`
+
+    const total = parseInt(totalRows[0].total);
+
+    // Get paginated parent comments
+    const { rows: parentComments } = await db.executeQuery(`
         SELECT 
           c.body, 
           c.author, 
@@ -124,70 +124,95 @@
           a.followers, 
           a.followings
         ORDER BY c.created DESC
-        LIMIT ${limit}
-        OFFSET ${offset};;
-      `);
-  
-      // Fetch child comments for each parent comment
-      const commentsWithChildren = await Promise.all(parentComments.map(async (parentComment) => {
-        console.log(`
-          author ${parentComment.author} 
-          permlink ${parentComment.permlink} 
-          `);
-          
-        const {rows: childComments} = await db.executeQuery(`
+        LIMIT @limit
+        OFFSET @offset;
+      `, [
+      { name: 'limit', value: limit },
+      { name: 'offset', value: offset }
+    ]);
+
+    // Fetch all child comments in a single query (fixes N+1 problem)
+    // Note: parentComments data comes from our own query, so it's safe
+    // We still escape single quotes as a defense-in-depth measure
+    const parentIds = parentComments.map((p: any) => {
+      // Validate that author/permlink match expected Hive format
+      const author = String(p.author).replace(/'/g, "''");
+      const permlink = String(p.permlink).replace(/'/g, "''");
+      return `('${author}', '${permlink}')`;
+    }).join(',');
+
+    let childCommentsMap: Map<string, any[]> = new Map();
+
+    if (parentComments.length > 0) {
+      const { rows: allChildComments } = await db.executeQuery(`
           SELECT 
             ch.body, 
             ch.author, 
             ch.permlink, 
+            ch.parent_author,
+            ch.parent_permlink,
             ch.created, 
             ch.json_metadata AS child_json_metadata
           FROM comments ch
-          WHERE ch.parent_author = '${parentComment.author}'
-              AND ch.parent_permlink = '${parentComment.permlink}'
-              AND ch.deleted = false
+          WHERE (ch.parent_author, ch.parent_permlink) IN (${parentIds})
+            AND ch.deleted = false
           ORDER BY ch.created ASC;
         `);
-  
-        return {
-          ...parentComment,
-          children: childComments
-        };
-      }));
-  
-      // Calculate pagination metadata
-      const totalPages = Math.ceil(total / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-  
-      return NextResponse.json(
-        { 
-          success: true, 
-          data: commentsWithChildren,
-          pagination: {
-            total,
-            totalPages,
-            currentPage: page,
-            limit,
-            hasNextPage,
-            hasPrevPage,
-            nextPage: hasNextPage ? page + 1 : null,
-            prevPage: hasPrevPage ? page - 1 : null
-          }
-        }, 
-        { status: 200,
-          headers: {
-              'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
-          } }
-      );
-    } catch (error) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          code: 'Failed to fetch data',
-          error
-        }, 
-        { status: 500 }
-      );
+
+      // Group children by parent
+      for (const child of allChildComments) {
+        const key = `${child.parent_author}:${child.parent_permlink}`;
+        if (!childCommentsMap.has(key)) {
+          childCommentsMap.set(key, []);
+        }
+        childCommentsMap.get(key)!.push(child);
+      }
     }
+
+    // Attach children to parents
+    const commentsWithChildren = parentComments.map((parentComment: any) => {
+      const key = `${parentComment.author}:${parentComment.permlink}`;
+      return {
+        ...parentComment,
+        children: childCommentsMap.get(key) || []
+      };
+    });
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: commentsWithChildren,
+        pagination: {
+          total,
+          totalPages,
+          currentPage: page,
+          limit,
+          hasNextPage,
+          hasPrevPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          prevPage: hasPrevPage ? page - 1 : null
+        }
+      },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 's-maxage=300, stale-while-revalidate=150'
+        }
+      }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        code: 'Failed to fetch data',
+        error
+      },
+      { status: 500 }
+    );
   }
+}

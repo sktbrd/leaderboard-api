@@ -4,31 +4,45 @@ import type { NextRequest } from 'next/server';
 const TOKEN_SECRET = process.env.TOKEN_SECRET;
 
 export async function authenticateToken(request: NextRequest): Promise<boolean> {
-  return true;
+  // Allow localhost in development mode
+  if (process.env.NODE_ENV === 'development') {
+    const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
+    if (host === 'localhost:3000' || host.startsWith('localhost:')) {
+      return true;
+    }
+  }
 
-  
-  // Get the host from the headers
-  // const host = request.headers.get('x-forwarded-host') || request.nextUrl.host;
-  
-  // Check if the host is 'localhost:3000' and skip authentication
-  // if (host === 'localhost:3000') {
-  // return true;
-  // }
+  // Require TOKEN_SECRET to be configured in production
+  if (!TOKEN_SECRET) {
+    console.error('TOKEN_SECRET environment variable is not set');
+    return false;
+  }
 
-  
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return false;
+  }
 
-  // const authHeader = request.headers.get('authorization');
-  // if (!authHeader) return false;
-  // // Check if the host is 'localhost:3000' and skip authentication
-  // if (host === 'localhost:3000') {
-  //   return true;
-  // }
+  // Expect: "Bearer <token>"
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return false;
+  }
 
-  // const authHeader = request.headers.get('authorization');
-  // if (!authHeader) return false;
+  const token = parts[1];
+  if (!token) {
+    return false;
+  }
 
-  // const token = authHeader.split(' ')[1];
-  // if (!token) return false;
-  
-  // return token === TOKEN_SECRET;
+  // Constant-time comparison to prevent timing attacks
+  if (token.length !== TOKEN_SECRET.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < token.length; i++) {
+    result |= token.charCodeAt(i) ^ TOKEN_SECRET.charCodeAt(i);
+  }
+
+  return result === 0;
 }

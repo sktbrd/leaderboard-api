@@ -220,11 +220,11 @@ async function checkHealth(service: ServiceDefinition): Promise<ServiceHealth> {
         responseTime,
         lastChecked: new Date().toISOString(),
         cookieInfo,
-        error: !cookieInfo.valid && cookieInfo.exists 
+        error: !cookieInfo.valid && cookieInfo.exists
           ? `Invalid Instagram cookies${cookieInfo.daysUntilExpiry !== undefined ? ` (expires in ${cookieInfo.daysUntilExpiry} days)` : ''}`
           : !cookieInfo.exists
-          ? 'Instagram cookies missing'
-          : okFlag ? undefined : 'Health endpoint did not report ok',
+            ? 'Instagram cookies missing'
+            : okFlag ? undefined : 'Health endpoint did not report ok',
       };
     }
 
