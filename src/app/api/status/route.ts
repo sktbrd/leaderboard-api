@@ -22,6 +22,12 @@ type ServiceHealth = ServiceDefinition & {
   lastChecked: string;
   authStatus?: string;
   rcInfo?: string;
+  cookieInfo?: {
+    valid: boolean;
+    exists: boolean;
+    expiresAt?: string;
+    daysUntilExpiry?: number;
+  };
 };
 
 const HEALTH_TIMEOUT_MS = 5000;
@@ -194,6 +200,31 @@ async function checkHealth(service: ServiceDefinition): Promise<ServiceHealth> {
         authStatus,
         rcInfo: data.rcInfo,
         error: okFlag ? undefined : 'Signer health did not report ok',
+      };
+    }
+
+    // Special handling for Instagram services to extract cookie information
+    if (service.category === 'Instagram Downloader' && data.authentication) {
+      const auth = data.authentication;
+      const cookieInfo = {
+        valid: auth.cookies_valid === true,
+        exists: auth.cookies_exist === true,
+        expiresAt: auth.cookie_expires_at,
+        daysUntilExpiry: auth.days_until_expiry,
+      };
+
+      const okFlag = data.ok === true || data.healthy === true || data.status === 'ok';
+      return {
+        ...service,
+        isHealthy: okFlag || response.ok,
+        responseTime,
+        lastChecked: new Date().toISOString(),
+        cookieInfo,
+        error: !cookieInfo.valid && cookieInfo.exists 
+          ? `Invalid Instagram cookies${cookieInfo.daysUntilExpiry !== undefined ? ` (expires in ${cookieInfo.daysUntilExpiry} days)` : ''}`
+          : !cookieInfo.exists
+          ? 'Instagram cookies missing'
+          : okFlag ? undefined : 'Health endpoint did not report ok',
       };
     }
 
