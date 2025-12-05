@@ -25,7 +25,8 @@ type ServiceHealth = ServiceDefinition & {
 };
 
 const HEALTH_TIMEOUT_MS = 5000;
-const CACHE_TTL_MS = 30000;
+// Slow down health polling to avoid 429s on rate-limited services
+const CACHE_TTL_MS = 300000;
 
 const signerUrl =
   process.env.NEXT_PUBLIC_SIGNER_URL ||
@@ -63,14 +64,6 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     description: 'VSC GraphQL node (HTTP 8080)',
     // Funnel path to the VSC node; returns 404 but confirms the service is reachable
     healthUrl: 'https://minivlad.tail9656d3.ts.net/vsc/',
-  },
-  {
-    id: 'signup',
-    name: 'Signup Server',
-    category: 'SignUp',
-    description: 'Account signup backend',
-    healthUrl: `${signerUrl.replace(/\/$/, '')}/healthz`,
-    headers: { 'x-signer-token': signerToken },
   },
   {
     id: 'signup-signer',

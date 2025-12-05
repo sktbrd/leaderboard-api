@@ -158,7 +158,7 @@
   height: 44px;
   min-width: 44px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #a8ff60, #80cc40);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
