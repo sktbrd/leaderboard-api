@@ -43,19 +43,7 @@ async function checkServiceHealth(healthUrl: string): Promise<{ isHealthy: boole
   }
 }
 
-async function getActiveService(): Promise<string | null> {
-  // Sort services by priority (1 = highest priority)
-  const sortedServices = TRANSCODE_SERVICES.sort((a, b) => a.priority - b.priority);
-  
-  for (const service of sortedServices) {
-    const healthCheck = await checkServiceHealth(service.healthUrl);
-    if (healthCheck.isHealthy) {
-      return service.transcodeUrl;
-    }
-  }
-  
-  return null;
-}
+
 
 export async function GET(request: NextRequest) {
   try {
