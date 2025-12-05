@@ -47,7 +47,22 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     name: 'Mac Mini IG',
     category: 'Instagram Downloader',
     description: 'Mac Mini Instagram downloader / helper',
-    healthUrl: 'https://minivlad.tail9656d3.ts.net/healthz',
+    healthUrl: 'https://minivlad.tail9656d3.ts.net/instagram/health',
+  },
+  {
+    id: 'raspi-insta',
+    name: 'Raspberry Pi IG',
+    category: 'Instagram Downloader',
+    description: 'Raspberry Pi Instagram downloader / fallback',
+    healthUrl: 'https://raspberrypi.tail83ea3e.ts.net/instagram/health',
+  },
+  {
+    id: 'vsc-node',
+    name: 'VSC Node',
+    category: 'Core / VSC',
+    description: 'VSC GraphQL node (HTTP 8080)',
+    // Funnel path to the VSC node; returns 404 but confirms the service is reachable
+    healthUrl: 'https://minivlad.tail9656d3.ts.net/vsc/',
   },
   {
     id: 'signup',
@@ -55,6 +70,7 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     category: 'SignUp',
     description: 'Account signup backend',
     healthUrl: `${signerUrl.replace(/\/$/, '')}/healthz`,
+    headers: { 'x-signer-token': signerToken },
   },
   {
     id: 'signup-signer',
@@ -84,6 +100,25 @@ async function checkHealth(service: ServiceDefinition): Promise<ServiceHealth> {
   const timeoutId = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
 
   try {
+    // Special-case VSC node: it may not expose a health endpoint, so treat any reachable response (<500) as healthy
+    if (service.id === 'vsc-node') {
+      const response = await fetch(service.healthUrl, {
+        signal: controller.signal,
+        headers: service.headers,
+      });
+      clearTimeout(timeoutId);
+      const responseTime = Date.now() - startTime;
+
+      const okFlag = response.status < 500; // reachable service, even if it returns 404
+      return {
+        ...service,
+        isHealthy: okFlag,
+        responseTime,
+        lastChecked: new Date().toISOString(),
+        error: okFlag ? undefined : `HTTP ${response.status} ${response.statusText}`,
+      };
+    }
+
     const response = await fetch(service.healthUrl, {
       signal: controller.signal,
       headers: service.headers,
