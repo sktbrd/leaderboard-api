@@ -30,7 +30,10 @@ type StatusResponse = {
   error?: string;
 };
 
-const STATUS_TEXT: Record<HealthStatus, { label: string; tone: keyof typeof styles }> = {
+const STATUS_TEXT: Record<
+  HealthStatus,
+  { label: string; tone: keyof typeof styles }
+> = {
   operational: { label: "All systems operational", tone: "ok" },
   degraded: { label: "Some services are degraded", tone: "warn" },
   down: { label: "Systems unavailable", tone: "down" },
@@ -54,7 +57,9 @@ export default function StatusPage() {
       setData(json);
       setFetchError(null);
     } catch (error) {
-      setFetchError(error instanceof Error ? error.message : "Failed to load status");
+      setFetchError(
+        error instanceof Error ? error.message : "Failed to load status"
+      );
     } finally {
       setLoading(false);
     }
@@ -93,7 +98,10 @@ export default function StatusPage() {
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Status Overview</h1>
             <span className={`${styles.pill} ${styles[statusCopy.tone]}`}>
-              <span className={styles.statusDot} style={{ background: statusDotColor(overallStatus) }} />
+              <span
+                className={styles.statusDot}
+                style={{ background: statusDotColor(overallStatus) }}
+              />
               {statusCopy.label}
             </span>
           </div>
@@ -102,7 +110,10 @@ export default function StatusPage() {
           </p>
           <div className={styles.banner}>
             <div className={styles.bannerStatus}>
-              <span className={styles.statusDot} style={{ background: statusDotColor(overallStatus) }} />
+              <span
+                className={styles.statusDot}
+                style={{ background: statusDotColor(overallStatus) }}
+              />
               {statusCopy.label}
             </div>
             <div className={styles.meta}>
@@ -122,7 +133,9 @@ export default function StatusPage() {
             Refresh now
           </button>
           <span>Auto-refresh every {Math.round(POLL_MS / 1000)}s.</span>
-          {fetchError && <span className={styles.error}>Fetch error: {fetchError}</span>}
+          {fetchError && (
+            <span className={styles.error}>Fetch error: {fetchError}</span>
+          )}
         </div>
 
         {grouped.length === 0 && !loading ? (
@@ -140,9 +153,18 @@ export default function StatusPage() {
                           {getCategoryIcon(category)}
                         </div>
                         <div className={styles.cardInfo}>
-                          <span className={`${styles.tag} ${getCategoryTagClass(category, styles)}`}>{category}</span>
+                          <span
+                            className={`${styles.tag} ${getCategoryTagClass(
+                              category,
+                              styles
+                            )}`}
+                          >
+                            {category}
+                          </span>
                           <div className={styles.name}>{service.name}</div>
-                          <p className={styles.description}>{service.description}</p>
+                          <p className={styles.description}>
+                            {service.description}
+                          </p>
                         </div>
                       </div>
                       <span
@@ -152,7 +174,11 @@ export default function StatusPage() {
                       >
                         <span
                           className={styles.statusDot}
-                          style={{ background: statusDotColor(service.isHealthy ? "operational" : "down") }}
+                          style={{
+                            background: statusDotColor(
+                              service.isHealthy ? "operational" : "down"
+                            ),
+                          }}
                         />
                         {service.isHealthy ? "Operational" : "Unavailable"}
                       </span>
@@ -161,21 +187,32 @@ export default function StatusPage() {
                     <div className={styles.divider} />
 
                     <div className={styles.statusRow}>
-                      <code className={styles.endpoint}>{service.healthUrl}</code>
+                      <code className={styles.endpoint}>
+                        {service.healthUrl}
+                      </code>
                       <div className={styles.time}>
-                        {service.responseTime ? `${service.responseTime} ms` : "No response"}
+                        {service.responseTime
+                          ? `${service.responseTime} ms`
+                          : "No response"}
                       </div>
                     </div>
 
-                    {service.rcInfo && <div className={styles.error}>{service.rcInfo}</div>}
-                    {service.error && <div className={styles.error}>{service.error}</div>}
+                    {service.rcInfo && (
+                      <div className={styles.error}>{service.rcInfo}</div>
+                    )}
+                    {service.error && (
+                      <div className={styles.error}>{service.error}</div>
+                    )}
                     {service.authStatus && (
                       <div className={styles.meta}>
                         <span>Auth: {service.authStatus}</span>
                       </div>
                     )}
                     <div className={styles.meta}>
-                      <span>Checked: {new Date(service.lastChecked).toLocaleTimeString()}</span>
+                      <span>
+                        Checked:{" "}
+                        {new Date(service.lastChecked).toLocaleTimeString()}
+                      </span>
                     </div>
                   </article>
                 ))}
@@ -210,11 +247,16 @@ function getCategoryIcon(category: string): string {
   return "🖥️";
 }
 
-function getCategoryTagClass(category: string, styles: Record<string, string>): string {
+function getCategoryTagClass(
+  category: string,
+  styles: Record<string, string>
+): string {
   const lower = category.toLowerCase();
-  if (lower.includes("video") || lower.includes("transcode")) return styles.tagVideo;
+  if (lower.includes("video") || lower.includes("transcode"))
+    return styles.tagVideo;
   if (lower.includes("auth") || lower.includes("signup")) return styles.tagAuth;
-  if (lower.includes("database") || lower.includes("db")) return styles.tagDatabase;
+  if (lower.includes("database") || lower.includes("db"))
+    return styles.tagDatabase;
   if (lower.includes("storage")) return styles.tagStorage;
   if (lower.includes("api")) return styles.tagApi;
   if (lower.includes("core")) return styles.tagCore;
