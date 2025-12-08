@@ -13,12 +13,12 @@ const PUBLIC_ENDPOINTS = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Check if the endpoint is public (allow exact match or path prefix)
   const isPublicEndpoint = PUBLIC_ENDPOINTS.some(
     (endpoint) => pathname === endpoint || pathname.startsWith(endpoint + '/')
   );
-  
+
   if (pathname.startsWith('/api/v1/') && !isPublicEndpoint) {
     const isAuthenticated = await authenticateToken(request);
     if (!isAuthenticated) {
