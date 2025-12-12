@@ -15,8 +15,8 @@ export const TRANSCODE_SERVICES = [
   {
     priority: 3,
     name: 'Raspberry Pi (Fallback)',
-    healthUrl: 'https://raspberrypi.tail83ea3e.ts.net/video/healthz',
-    transcodeUrl: 'https://raspberrypi.tail83ea3e.ts.net/video/transcode'
+    healthUrl: 'https://vladsberry.tail83ea3e.ts.net/video/healthz',
+    transcodeUrl: 'https://vladsberry.tail83ea3e.ts.net/video/transcode'
   }
 ];
 

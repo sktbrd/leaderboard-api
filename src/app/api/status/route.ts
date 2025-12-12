@@ -61,7 +61,7 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     name: 'Raspberry Pi IG',
     category: 'Instagram Downloader',
     description: 'Raspberry Pi Instagram downloader / fallback',
-    healthUrl: 'https://raspberrypi.tail83ea3e.ts.net/instagram/health',
+    healthUrl: 'https://vladsberry.tail83ea3e.ts.net/instagram/health',
   },
   {
     id: 'vsc-node',
