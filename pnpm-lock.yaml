@@ -30,8 +30,8 @@ importers:
         specifier: ^11.0.1
         version: 11.0.1
       next:
-        specifier: 15.1.9
-        version: 15.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 15.1.11
+        version: 15.1.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       pg:
         specifier: ^8.14.1
         version: 8.15.6
@@ -357,8 +357,8 @@ packages:
   '@js-joda/core@5.6.5':
     resolution: {integrity: sha512-3zwefSMwHpu8iVUW8YYz227sIv6UFqO31p1Bf1ZH/Vom7CmNyUsXjDBlnNzcuhmOL1XfxZ3nvND42kR23XlbcQ==}
 
-  '@next/env@15.1.9':
-    resolution: {integrity: sha512-Te1wbiJ//I40T7UePOUG8QBwh+VVMCc0OTuqesOcD3849TVOVOyX4Hdrkx7wcpLpy/LOABIcGyLX5P/SzzXhFA==}
+  '@next/env@15.1.11':
+    resolution: {integrity: sha512-yp++FVldfLglEG5LoS2rXhGypPyoSOyY0kxZQJ2vnlYJeP8o318t5DrDu5Tqzr03qAhDWllAID/kOCsXNLcwKw==}
 
   '@next/eslint-plugin-next@15.1.9':
     resolution: {integrity: sha512-H7CuatO2RXQQmm40cX3C6kFPNh/v6Dx2oEy1iKZKfubL0mhuuDMBLSUdwu5JgCP1mtuPBufK1h7WSIVjBADZtw==}
@@ -1813,8 +1813,8 @@ packages:
     resolution: {integrity: sha512-Z4SmBUweYa09+o6pG+eASabEpP6QkQ70yHj351pQoEXIs8uHbaU2DWVmzBANKgflPa47A50PtB2+NgRpQvr7vA==}
     engines: {node: '>= 10'}
 
-  next@15.1.9:
-    resolution: {integrity: sha512-OoQpDPV2i3o5Hnn46nz2x6fzdFxFO+JsU4ZES12z65/feMjPHKKHLDVQ2NuEvTaXTRisix/G5+6hyTkwK329kA==}
+  next@15.1.11:
+    resolution: {integrity: sha512-UiVJaOGhKST58AadwbFUZThlNBmYhKqaCs8bVtm4plTxsgKq0mJ0zTsp7t7j/rzsbAEj9WcAMdZCztjByi4EoQ==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -2954,7 +2954,7 @@ snapshots:
 
   '@js-joda/core@5.6.5': {}
 
-  '@next/env@15.1.9': {}
+  '@next/env@15.1.11': {}
 
   '@next/eslint-plugin-next@15.1.9':
     dependencies:
@@ -4907,9 +4907,9 @@ snapshots:
 
   neotraverse@0.6.18: {}
 
-  next@15.1.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@15.1.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@next/env': 15.1.9
+      '@next/env': 15.1.11
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.15
       busboy: 1.6.0
