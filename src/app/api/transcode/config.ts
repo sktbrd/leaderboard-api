@@ -9,8 +9,8 @@ export const TRANSCODE_SERVICES = [
   {
     priority: 2,
     name: 'Mac Mini M4 (Secondary)',
-    healthUrl: 'https://minivlad.tail9656d3.ts.net/video/healthz',
-    transcodeUrl: 'https://minivlad.tail9656d3.ts.net/video/transcode'
+    healthUrl: 'https://minivlad.tail83ea3e.ts.net/video/healthz',
+    transcodeUrl: 'https://minivlad.tail83ea3e.ts.net/video/transcode'
   },
   {
     priority: 3,
