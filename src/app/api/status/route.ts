@@ -52,14 +52,14 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
     name: 'Mac Mini IG',
     category: 'Instagram Downloader',
     description: 'Mac Mini Instagram downloader / helper',
-    healthUrl: 'https://minivlad.tail83ea3e.ts.net/instagram/health',
+    healthUrl: 'https://minivlad.tail83ea3e.ts.net/instagram/healthz',
   },
   {
     id: 'raspi-insta',
     name: 'Raspberry Pi IG',
     category: 'Instagram Downloader',
     description: 'Raspberry Pi Instagram downloader / fallback',
-    healthUrl: 'https://vladsberry.tail83ea3e.ts.net/instagram/health',
+    healthUrl: 'https://vladsberry.tail83ea3e.ts.net/instagram/healthz',
   },
   {
     id: 'vsc-node',
