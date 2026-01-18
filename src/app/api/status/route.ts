@@ -34,9 +34,7 @@ const HEALTH_TIMEOUT_MS = 5000;
 // Slow down health polling to avoid 429s on rate-limited services
 const CACHE_TTL_MS = 300000;
 
-const signerUrl =
-  process.env.NEXT_PUBLIC_SIGNER_URL ||
-  'https://minivlad.tail83ea3e.ts.net';
+const signerUrl = 'https://minivlad.tail83ea3e.ts.net';
 const signerToken =
   process.env.NEXT_PUBLIC_SIGNER_TOKEN ||
   'd1fa4884f3c12b49b922c96ad93413416e19a5dcde50499ee473c448622c54d9';

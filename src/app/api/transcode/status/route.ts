@@ -48,12 +48,16 @@ async function checkServiceHealth(healthUrl: string): Promise<{ isHealthy: boole
 export async function GET(request: NextRequest) {
   try {
     const startTime = Date.now();
-    
-    // Check health of all services in parallel
-    const healthCheckPromises = TRANSCODE_SERVICES.map(async (service): Promise<ServiceStatus> => {
+
+    // Check services sequentially by priority and stop at first healthy one
+    const orderedServices = [...TRANSCODE_SERVICES].sort((a, b) => a.priority - b.priority);
+    const serviceStatuses: ServiceStatus[] = [];
+    let activeService: ServiceStatus | undefined;
+
+    for (const service of orderedServices) {
       const healthResult = await checkServiceHealth(service.healthUrl);
-      
-      return {
+
+      const status: ServiceStatus = {
         priority: service.priority,
         name: service.name,
         healthUrl: service.healthUrl,
@@ -63,14 +67,32 @@ export async function GET(request: NextRequest) {
         error: healthResult.error,
         lastChecked: new Date().toISOString()
       };
-    });
-    
-    const serviceStatuses = await Promise.all(healthCheckPromises);
-    
-    // Find the active service (first healthy one by priority)
-    const activeService = serviceStatuses
-      .filter(s => s.isHealthy)
-      .sort((a, b) => a.priority - b.priority)[0];
+
+      serviceStatuses.push(status);
+
+      if (healthResult.isHealthy) {
+        activeService = status;
+        break;
+      }
+    }
+
+    // Mark remaining services as skipped to keep the list stable
+    if (activeService && serviceStatuses.length < orderedServices.length) {
+      const checkedIds = new Set(serviceStatuses.map((s) => s.name));
+      orderedServices.forEach((service) => {
+        if (!checkedIds.has(service.name)) {
+          serviceStatuses.push({
+            priority: service.priority,
+            name: service.name,
+            healthUrl: service.healthUrl,
+            transcodeUrl: service.transcodeUrl,
+            isHealthy: false,
+            error: 'Skipped after healthy service found',
+            lastChecked: new Date().toISOString()
+          });
+        }
+      });
+    }
     
     const totalResponseTime = Date.now() - startTime;
     const healthyCount = serviceStatuses.filter(s => s.isHealthy).length;
