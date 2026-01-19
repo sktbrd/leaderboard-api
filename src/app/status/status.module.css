@@ -1,31 +1,48 @@
+:root {
+  --bg-deep: #04060a;
+  --bg-panel: rgba(15, 20, 28, 0.88);
+  --bg-panel-strong: rgba(15, 20, 28, 0.96);
+  --ink: #e7f2ff;
+  --muted: rgba(231, 242, 255, 0.7);
+  --accent: #3cffc8;
+  --accent-2: #5cc0ff;
+  --warn: #ffd55a;
+  --down: #ff5c69;
+  --shadow: 0 20px 60px rgba(3, 7, 18, 0.6);
+}
+
 .wrapper {
   min-height: 100vh;
-  background: radial-gradient(circle at 10% 20%, #1a1f16 0, #0f120d 35%, #000000 70%);
-  color: #a8ff60;
-  padding: 48px 18px 64px;
+  background:
+    radial-gradient(circle at 5% 15%, rgba(60, 255, 200, 0.3), transparent 45%),
+    radial-gradient(circle at 90% 20%, rgba(92, 192, 255, 0.25), transparent 50%),
+    linear-gradient(160deg, #05070c 0%, #03040b 45%, #000000 100%);
+  color: var(--ink);
+  padding: 56px 20px 80px;
   font-family: "Space Grotesk", "Sora", "Segoe UI", sans-serif;
 }
 
 .shell {
-  max-width: 1100px;
+  max-width: 1180px;
   margin: 0 auto;
 }
 
 .hero {
-  background: linear-gradient(135deg, #a8ff60, #80cc40);
-  color: #000000;
-  border-radius: 18px;
-  padding: 28px 32px;
-  box-shadow: 0 18px 40px rgba(168, 255, 96, 0.3);
+  background: linear-gradient(135deg, rgba(28, 42, 64, 0.95), rgba(9, 15, 23, 0.95));
+  color: var(--ink);
+  border-radius: 22px;
+  padding: 32px 34px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(60, 255, 200, 0.3);
 }
 
 .kicker {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 12px;
+  letter-spacing: 0.24em;
+  font-size: 11px;
   font-weight: 700;
   margin-bottom: 10px;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 .titleRow {
@@ -37,15 +54,15 @@
 }
 
 .title {
-  font-size: clamp(26px, 4vw, 36px);
+  font-size: clamp(28px, 4vw, 40px);
   font-weight: 800;
   letter-spacing: -0.03em;
 }
 
 .subtitle {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 15px;
-  opacity: 0.92;
+  color: var(--muted);
 }
 
 .banner {
@@ -53,12 +70,13 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 18px;
-  background: #000000;
-  color: #a8ff60;
-  border-radius: 12px;
+  background: rgba(5, 8, 14, 0.8);
+  color: var(--ink);
+  border-radius: 14px;
   padding: 12px 16px;
   gap: 12px;
   flex-wrap: wrap;
+  border: 1px solid rgba(92, 192, 255, 0.2);
 }
 
 .bannerStatus {
@@ -73,7 +91,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  box-shadow: 0 0 0 6px rgba(168, 255, 96, 0.15);
+  box-shadow: 0 0 0 6px rgba(60, 255, 200, 0.18);
 }
 
 .pill {
@@ -87,18 +105,18 @@
 }
 
 .ok {
-  background: #a8ff60;
-  color: #000000;
+  background: var(--accent);
+  color: #001012;
 }
 
 .warn {
-  background: #ffd700;
-  color: #000000;
+  background: var(--warn);
+  color: #130f00;
 }
 
 .down {
-  background: #ff4444;
-  color: #000000;
+  background: var(--down);
+  color: #110004;
 }
 
 .meta {
@@ -106,67 +124,101 @@
   gap: 14px;
   align-items: center;
   font-size: 13px;
-  opacity: 0.9;
+  color: var(--muted);
 }
 
-.list {
-  margin-top: 28px;
+.machineGrid {
+  margin-top: 32px;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.machineCard {
+  border-radius: 22px;
+  background: var(--bg-panel);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  min-height: 420px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(92, 192, 255, 0.2);
+  backdrop-filter: blur(12px);
 }
 
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.machineMedia {
+  position: relative;
+  min-height: 180px;
 }
 
-.sectionTitle {
-  font-size: 16px;
+.machineImage {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.1) contrast(1.1);
+}
+
+.machineOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 9, 16, 0.1) 0%, rgba(6, 9, 16, 0.9) 85%);
+}
+
+.machineHeader {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 18px 20px;
+  color: #f4f7ff;
+}
+
+.machineLabel {
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.01em;
-  color: #a8ff60;
+  letter-spacing: -0.02em;
 }
 
-.card {
-  background: #1a1f16;
-  border: 1px solid #a8ff60;
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 12px 20px rgba(168, 255, 96, 0.1);
+.machineLocation {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+  margin-top: 6px;
+}
+
+.machineDescription {
+  font-size: 13px;
+  color: rgba(231, 242, 255, 0.75);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.machineBody {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.serviceCard {
+  background: var(--bg-panel-strong);
+  border-radius: 16px;
+  padding: 14px;
   display: grid;
   gap: 10px;
+  border: 1px solid rgba(60, 255, 200, 0.2);
+  box-shadow: 0 10px 24px rgba(2, 7, 16, 0.5);
 }
 
-.cardTop {
+.serviceTop {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
 }
 
-.cardContent {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  flex: 1;
-}
-
-.serverIcon {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border-radius: 10px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  box-shadow: 0 4px 12px rgba(168, 255, 96, 0.25);
-}
-
-.cardInfo {
+.serviceInfo {
   flex: 1;
 }
 
@@ -175,55 +227,55 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #a8ff60;
-  color: #000000;
+  background: rgba(60, 255, 200, 0.2);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
 }
 
 .tagCore {
-  background: #a8ff60;
-  color: #000000;
+  background: rgba(60, 255, 200, 0.2);
+  color: var(--accent);
 }
 
 .tagVideo {
-  background: #64b5f6;
-  color: #000000;
+  background: rgba(92, 192, 255, 0.25);
+  color: #9dd8ff;
 }
 
 .tagAuth {
-  background: #ffd700;
-  color: #000000;
+  background: rgba(255, 213, 90, 0.25);
+  color: #ffe39a;
 }
 
 .tagStorage {
-  background: #64b5f6;
-  color: #000000;
+  background: rgba(92, 192, 255, 0.25);
+  color: #9dd8ff;
 }
 
 .tagApi {
-  background: #ba68c8;
-  color: #000000;
+  background: rgba(255, 92, 105, 0.2);
+  color: #ffc2c7;
 }
 
 .tagDatabase {
-  background: #ff8a65;
-  color: #000000;
+  background: rgba(255, 143, 92, 0.2);
+  color: #ffc2a3;
 }
 
 .name {
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  margin-top: 4px;
-  color: #a8ff60;
+  margin-top: 6px;
+  color: var(--ink);
 }
 
 .description {
-  font-size: 14px;
-  color: #80cc40;
-  line-height: 1.4;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .statusRow {
@@ -235,59 +287,70 @@
 
 .endpoint {
   font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
-  background: #000000;
-  color: #a8ff60;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--accent);
   border-radius: 8px;
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 11px;
   overflow-wrap: anywhere;
 }
 
 .time {
-  font-size: 13px;
-  color: #a8ff60;
+  font-size: 12px;
+  color: var(--ink);
   font-weight: 700;
 }
 
 .error {
-  color: #ff4444;
-  font-size: 13px;
+  color: var(--down);
+  font-size: 12px;
   line-height: 1.4;
 }
 
 .divider {
   height: 1px;
-  background: #a8ff60;
+  background: rgba(60, 255, 200, 0.25);
   margin: 4px 0 2px;
 }
 
 .refreshRow {
-  margin-top: 16px;
+  margin-top: 18px;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  color: #80cc40;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .refreshButton {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #a8ff60;
-  background: #a8ff60;
-  color: #000000;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(60, 255, 200, 0.4);
+  background: rgba(60, 255, 200, 0.15);
+  color: var(--accent);
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .refreshButton:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(168, 255, 96, 0.4);
+  box-shadow: 0 10px 20px rgba(60, 255, 200, 0.2);
 }
 
 .loading {
   font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    padding: 26px 24px;
+  }
+
+  .machineGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -298,5 +361,9 @@
   .statusRow {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .serviceTop {
+    flex-direction: column;
   }
 }

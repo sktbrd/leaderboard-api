@@ -71,17 +71,82 @@ export default function StatusPage() {
     return () => clearInterval(id);
   }, []);
 
-  const grouped = useMemo(() => {
+  const machines = useMemo(() => {
     if (!data) return [];
-    const byCategory: Record<string, ServiceHealth[]> = {};
+
+    const groups: {
+      id: string;
+      label: string;
+      location: string;
+      description: string;
+      image: string;
+      services: ServiceHealth[];
+    }[] = [
+      {
+        id: "macmini",
+        label: "Mac Mini M4",
+        location: "Primary edge node",
+        description: "Handles Instagram pulls, VSC node access, and fallback services.",
+        image: "/macmini.png",
+        services: [],
+      },
+      {
+        id: "raspi",
+        label: "Raspberry Pi",
+        location: "Secondary edge node",
+        description: "Lightweight worker keeping IG downloads alive.",
+        image: "/raspberry.png",
+        services: [],
+      },
+      {
+        id: "oracle",
+        label: "Oracle Cloud",
+        location: "Primary cloud node",
+        description: "High-availability transcoding and API uptime.",
+        image: "/oracle-server.png",
+        services: [],
+      },
+      {
+        id: "other",
+        label: "Shared Services",
+        location: "External providers",
+        description: "Everything that lives outside the main hardware stack.",
+        image: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=800&q=80",
+        services: [],
+      },
+    ];
+
+    const byId = groups.reduce(
+      (acc, group) => {
+        acc[group.id] = group;
+        return acc;
+      },
+      {} as Record<string, (typeof groups)[number]>
+    );
+
     data.services.forEach((service) => {
-      byCategory[service.category] = byCategory[service.category] || [];
-      byCategory[service.category].push(service);
+      const url = service.healthUrl.toLowerCase();
+      const name = service.name.toLowerCase();
+
+      if (url.includes("minivlad") || name.includes("mac mini") || name.includes("vsc")) {
+        byId.macmini.services.push(service);
+        return;
+      }
+
+      if (url.includes("vladsberry") || name.includes("raspberry")) {
+        byId.raspi.services.push(service);
+        return;
+      }
+
+      if (url.includes("oracle") || url.includes("sslip.io") || name.includes("oracle")) {
+        byId.oracle.services.push(service);
+        return;
+      }
+
+      byId.other.services.push(service);
     });
-    return Object.entries(byCategory).map(([category, services]) => ({
-      category,
-      services,
-    }));
+
+    return groups.filter((group) => group.services.length > 0);
   }, [data]);
 
   const overallStatus = data?.status ?? "degraded";
@@ -106,7 +171,7 @@ export default function StatusPage() {
             </span>
           </div>
           <p className={styles.subtitle}>
-            Live health for core services, signup, apps, and transcoding nodes.
+            Hardware-level health, organized by the machines powering Skatehive.
           </p>
           <div className={styles.banner}>
             <div className={styles.bannerStatus}>
@@ -138,84 +203,96 @@ export default function StatusPage() {
           )}
         </div>
 
-        {grouped.length === 0 && !loading ? (
+        {machines.length === 0 && !loading ? (
           <p className={styles.error}>No services to display.</p>
         ) : (
-          <div className={styles.list}>
-            {grouped.map(({ category, services }) => (
-              <section className={styles.section} key={category}>
-                <div className={styles.sectionTitle}>{category}</div>
-                {services.map((service) => (
-                  <article className={styles.card} key={service.id}>
-                    <div className={styles.cardTop}>
-                      <div className={styles.cardContent}>
-                        <div className={styles.serverIcon}>
-                          {getCategoryIcon(category)}
-                        </div>
-                        <div className={styles.cardInfo}>
+          <div className={styles.machineGrid}>
+            {machines.map((machine) => (
+              <section className={styles.machineCard} key={machine.id}>
+                <div className={styles.machineMedia}>
+                  <img
+                    src={machine.image}
+                    alt={machine.label}
+                    className={styles.machineImage}
+                  />
+                  <div className={styles.machineOverlay} />
+                  <div className={styles.machineHeader}>
+                    <p className={styles.machineLabel}>{machine.label}</p>
+                    <p className={styles.machineLocation}>{machine.location}</p>
+                    <p className={styles.machineDescription}>
+                      {machine.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.machineBody}>
+                  {machine.services.map((service) => (
+                    <article className={styles.serviceCard} key={service.id}>
+                      <div className={styles.serviceTop}>
+                        <div className={styles.serviceInfo}>
                           <span
                             className={`${styles.tag} ${getCategoryTagClass(
-                              category,
+                              service.category,
                               styles
                             )}`}
                           >
-                            {category}
+                            {service.category}
                           </span>
                           <div className={styles.name}>{service.name}</div>
                           <p className={styles.description}>
                             {service.description}
                           </p>
                         </div>
-                      </div>
-                      <span
-                        className={`${styles.pill} ${
-                          styles[service.isHealthy ? "ok" : "down"]
-                        }`}
-                      >
                         <span
-                          className={styles.statusDot}
-                          style={{
-                            background: statusDotColor(
-                              service.isHealthy ? "operational" : "down"
-                            ),
-                          }}
-                        />
-                        {service.isHealthy ? "Operational" : "Unavailable"}
-                      </span>
-                    </div>
-
-                    <div className={styles.divider} />
-
-                    <div className={styles.statusRow}>
-                      <code className={styles.endpoint}>
-                        {service.healthUrl}
-                      </code>
-                      <div className={styles.time}>
-                        {service.responseTime
-                          ? `${service.responseTime} ms`
-                          : "No response"}
+                          className={`${styles.pill} ${
+                            styles[service.isHealthy ? "ok" : "down"]
+                          }`}
+                        >
+                          <span
+                            className={styles.statusDot}
+                            style={{
+                              background: statusDotColor(
+                                service.isHealthy ? "operational" : "down"
+                              ),
+                            }}
+                          />
+                          {service.isHealthy ? "Operational" : "Unavailable"}
+                        </span>
                       </div>
-                    </div>
 
-                    {service.rcInfo && (
-                      <div className={styles.error}>{service.rcInfo}</div>
-                    )}
-                    {service.error && (
-                      <div className={styles.error}>{service.error}</div>
-                    )}
-                    {service.authStatus && (
+                      <div className={styles.divider} />
+
+                      <div className={styles.statusRow}>
+                        <code className={styles.endpoint}>
+                          {service.healthUrl}
+                        </code>
+                        <div className={styles.time}>
+                          {service.responseTime
+                            ? `${service.responseTime} ms`
+                            : "No response"}
+                        </div>
+                      </div>
+
+                      {service.rcInfo && (
+                        <div className={styles.error}>{service.rcInfo}</div>
+                      )}
+                      {service.error && (
+                        <div className={styles.error}>{service.error}</div>
+                      )}
+                      {service.authStatus && (
+                        <div className={styles.meta}>
+                          <span>Auth: {service.authStatus}</span>
+                        </div>
+                      )}
                       <div className={styles.meta}>
-                        <span>Auth: {service.authStatus}</span>
+                        <span>
+                          Checked:{" "}
+                          {new Date(service.lastChecked).toLocaleTimeString()}
+                        </span>
                       </div>
-                    )}
-                    <div className={styles.meta}>
-                      <span>
-                        Checked:{" "}
-                        {new Date(service.lastChecked).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  ))}
+                </div>
               </section>
             ))}
           </div>
