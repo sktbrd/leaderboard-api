@@ -26,7 +26,7 @@ const colors: { [key: string]: string } = {
 
 export const logWithColor = (message: string, color: string) => {
     const VERBOSE = true;
-    
+
     if (VERBOSE)
         console.log(`${colors[color] || colors.reset}${message}${colors.reset}`);
 };
