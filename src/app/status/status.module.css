@@ -1,4 +1,4 @@
-:root {
+:global(:root) {
   --bg-deep: #04060a;
   --bg-panel: rgba(15, 20, 28, 0.88);
   --bg-panel-strong: rgba(15, 20, 28, 0.96);
