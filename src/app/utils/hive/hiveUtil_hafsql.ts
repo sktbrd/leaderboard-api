@@ -5,7 +5,17 @@ import { Address } from 'viem';
 
 const hafDb = new HAFSQL_Database();
 
-export const HiveClient = new Client('https://api.deathwing.me');
+// Hive RPC nodes with failover - dhive Client handles automatic failover
+export const HIVE_RPC_NODES = [
+    "https://api.deathwing.me",
+    "https://api.hive.blog",
+    "https://techcoderx.com",
+    "https://anyx.io",
+    "https://hive-api.arcange.eu",
+    "https://hive-api.3speak.tv",
+];
+
+export const HiveClient = new Client(HIVE_RPC_NODES);
 
 const colors: { [key: string]: string } = {
     red: '\x1b[31m',
@@ -245,7 +255,7 @@ export const convertVestingSharesToHivePower = async (
     const receivedVestingSharesFloat = parseFloat(receivedVestingShares.split(" ")[0]);
     const availableVESTS = vestingSharesFloat - delegatedVestingSharesFloat;
 
-    const response = await fetch('https://api.deathwing.me', {
+    const response = await fetch(HIVE_RPC_NODES[0], {
         method: 'POST',
         body: JSON.stringify({
             jsonrpc: '2.0',
