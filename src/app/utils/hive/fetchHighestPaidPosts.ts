@@ -21,12 +21,23 @@ export interface HighestPaidPost {
 /**
  * Fetches the highest paid posts of all time from the SkateHive community (hive-173115)
  * This queries all posts ever made in the community and ranks them by total payout
+ * 
+ * @param limit - Number of posts to return
+ * @param offset - Offset for pagination
+ * @param community - Community tag (default: hive-173115)
+ * @param days - Optional: only include posts from the last X days (null = all time)
  */
 export async function fetchHighestPaidPosts(
     limit: number = 100,
     offset: number = 0,
-    community: string = 'hive-173115'
+    community: string = 'hive-173115',
+    days: number | null = null
 ): Promise<{ rows: HighestPaidPost[]; total: number }> {
+    // Build the date filter condition
+    const dateCondition = days !== null 
+        ? `AND c.created >= NOW() - INTERVAL '${days} days'`
+        : '';
+
     // First get total count of posts with any payout
     const countQuery = `
     SELECT COUNT(*) AS total
@@ -34,7 +45,8 @@ export async function fetchHighestPaidPosts(
     WHERE c.category = @community
       AND c.deleted = false
       AND c.parent_author = ''
-      AND (c.total_payout_value + c.curator_payout_value + c.pending_payout_value) > 0;
+      AND (c.total_payout_value + c.curator_payout_value + c.pending_payout_value) > 0
+      ${dateCondition};
   `;
 
     const countResult = await db.executeQuery(countQuery, [
@@ -67,6 +79,7 @@ export async function fetchHighestPaidPosts(
     WHERE c.category = @community
       AND c.deleted = false
       AND c.parent_author = ''
+      ${dateCondition}
     ORDER BY (c.total_payout_value + c.curator_payout_value + c.pending_payout_value) DESC
     LIMIT @limit
     OFFSET @offset;

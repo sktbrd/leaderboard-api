@@ -23,6 +23,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes local cache TTL
  * - community: Community code (default: hive-173115)
  * - minPayout: Minimum total payout filter (optional)
  * - author: Filter by author (optional)
+ * - days: Only include posts from the last X days (optional, null = all time)
  * 
  * Response:
  * - posts: Array of highest paid posts sorted by total payout
@@ -41,17 +42,19 @@ export async function GET(request: NextRequest) {
         const community = searchParams.get('community') || 'hive-173115';
         const minPayout = Number(searchParams.get('minPayout')) || 0;
         const authorFilter = searchParams.get('author')?.toLowerCase();
+        const daysParam = searchParams.get('days');
+        const days = daysParam ? Math.max(1, Number(daysParam)) : null; // null = all time (GOAT)
 
         const offset = (page - 1) * limit;
-        const cacheKey = `highest-paid:${community}:${page}:${limit}:${minPayout}:${authorFilter || ''}`;
+        const cacheKey = `highest-paid:${community}:${page}:${limit}:${minPayout}:${authorFilter || ''}:${days || 'all'}`;
 
         let posts: HighestPaidPost[] = [];
         let total = 0;
         let cacheSource = 'fresh';
         let cacheLastUpdated: Date | null = null;
 
-        // Try to get data from the global cron cache first
-        const globalCache = getHighestPaidCache();
+        // Only use global cache for all-time queries (no days filter)
+        const globalCache = days === null ? getHighestPaidCache() : null;
 
         if (globalCache && globalCache.data.length > 0) {
             // Use global cache data
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
             } else {
                 // Fetch fresh data from database
                 console.log(`🔄 Fetching fresh data for: ${cacheKey}`);
-                const result = await fetchHighestPaidPosts(limit, offset, community);
+                const result = await fetchHighestPaidPosts(limit, offset, community, days);
 
                 // Apply additional filters
                 let filteredRows = result.rows;
@@ -140,7 +143,8 @@ export async function GET(request: NextRequest) {
             filters: {
                 community,
                 minPayout: minPayout > 0 ? minPayout : null,
-                author: authorFilter || null
+                author: authorFilter || null,
+                days: days
             }
         }, {
             headers: {
