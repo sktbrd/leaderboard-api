@@ -68,7 +68,13 @@ The V2 API provides enhanced features, better performance, and comprehensive ska
 | `/api/v2/balance/{username}` | GET    | User wallet balance and stats |
 | `/api/v2/market`             | GET    | Market data and token prices  |
 
-### 🏢 Utilities
+### � Rankings & Statistics
+
+| Endpoint               | Method | Description                                |
+| ---------------------- | ------ | ------------------------------------------ |
+| `/api/v2/highest-paid` | GET    | All-time highest paid posts in the community |
+
+### �🏢 Utilities
 
 | Endpoint             | Method | Description                       |
 | -------------------- | ------ | --------------------------------- |
@@ -145,11 +151,12 @@ The V1 API is maintained for backward compatibility. New integrations should use
 
 ### Maintenance & Cron Jobs
 
-| Endpoint                   | Method | Description                |
-| -------------------------- | ------ | -------------------------- |
-| `/api/cron/update`         | GET    | Trigger data update job    |
-| `/api/cron/v2`             | GET    | V2 maintenance overview    |
-| `/api/cron/v2/leaderboard` | GET    | Update V2 leaderboard data |
+| Endpoint                   | Method | Description                              |
+| -------------------------- | ------ | ---------------------------------------- |
+| `/api/cron/update`         | GET    | Trigger data update job                  |
+| `/api/cron/v2`             | GET    | V2 maintenance overview                  |
+| `/api/cron/v2/leaderboard` | GET    | Update V2 leaderboard data               |
+| `/api/cron/highest-paid`   | GET    | Update highest paid posts cache          |
 
 ## 🎯 Key Features
 

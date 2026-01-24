@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/v2", "schedule": "*/5 * * * *" }
+    { "path": "/api/cron/v2", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/highest-paid", "schedule": "*/15 * * * *" }
   ]
 }
