@@ -1,21 +1,6 @@
 import { NextResponse } from 'next/server';
-import { fetchHighestPaidPostsWithRanking, HighestPaidPost } from '@/app/utils/hive/fetchHighestPaidPosts';
-
-// In-memory cache for highest paid posts
-// In production, consider using Redis, Supabase, or Vercel KV for persistence
-interface CacheEntry {
-    data: HighestPaidPost[];
-    lastUpdated: Date;
-    totalPosts: number;
-}
-
-// Global cache - persists across requests on same Vercel instance
-declare global {
-    // eslint-disable-next-line no-var
-    var highestPaidCache: CacheEntry | null;
-}
-
-global.highestPaidCache = global.highestPaidCache || null;
+import { fetchHighestPaidPostsWithRanking } from '@/app/utils/hive/fetchHighestPaidPosts';
+import { setHighestPaidCache, getHighestPaidCache } from '@/app/utils/highestPaidCache';
 
 /**
  * Cron endpoint to update the highest paid posts cache
@@ -49,12 +34,9 @@ export async function GET(request: Request) {
         const posts = await fetchHighestPaidPostsWithRanking(limit, community);
 
         // Update the global cache
-        global.highestPaidCache = {
-            data: posts,
-            lastUpdated: new Date(),
-            totalPosts: posts.length
-        };
+        setHighestPaidCache(posts);
 
+        const cache = getHighestPaidCache();
         const duration = Date.now() - startTime;
         console.log(`✅ Cache updated successfully in ${duration}ms`);
         console.log(`   Total posts cached: ${posts.length}`);
@@ -65,7 +47,7 @@ export async function GET(request: Request) {
             message: 'Highest paid posts cache updated successfully',
             stats: {
                 totalPosts: posts.length,
-                lastUpdated: global.highestPaidCache.lastUpdated.toISOString(),
+                lastUpdated: cache?.lastUpdated.toISOString(),
                 executionTimeMs: duration,
                 topPost: posts[0] ? {
                     author: posts[0].author,
@@ -95,11 +77,4 @@ export async function GET(request: Request) {
             }
         });
     }
-}
-
-/**
- * Export function to get cached data from other routes
- */
-export function getHighestPaidCache(): CacheEntry | null {
-    return global.highestPaidCache;
 }

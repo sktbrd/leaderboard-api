@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchHighestPaidPosts, HighestPaidPost } from '@/app/utils/hive/fetchHighestPaidPosts';
-import { getHighestPaidCache } from '@/app/api/cron/highest-paid/route';
+import { getHighestPaidCache } from '@/app/utils/highestPaidCache';
 
 // Module-level cache with TTL tracking
-interface CacheEntry {
+interface LocalCacheEntry {
     data: HighestPaidPost[];
     total: number;
     timestamp: number;
 }
 
-const localCache: Map<string, CacheEntry> = new Map();
+const localCache: Map<string, LocalCacheEntry> = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes local cache TTL
 
 /**
