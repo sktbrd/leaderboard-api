@@ -180,6 +180,45 @@ export const swaggerDocument = {
         summary: 'Get V2 leaderboard data'
       })
     },
+    '/api/v2/highest-paid': {
+      get: createEndpoint({
+        tags: ['V2 Core'],
+        summary: 'Get highest paid posts of all time',
+        description: 'Returns the highest paid posts ever from the SkateHive community, sorted by total payout. Supports filtering by time period, minimum payout, and author.',
+        parameters: [
+          { $ref: '#/components/parameters/PageParam' },
+          { $ref: '#/components/parameters/LimitParam' },
+          {
+            in: 'query',
+            name: 'days',
+            required: false,
+            schema: { type: 'integer' },
+            description: 'Filter posts from the last X days. Leave empty for all-time (GOAT) posts.'
+          },
+          {
+            in: 'query',
+            name: 'minPayout',
+            required: false,
+            schema: { type: 'number' },
+            description: 'Minimum total payout filter (in USD/HBD)'
+          },
+          {
+            in: 'query',
+            name: 'author',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Filter by author username (partial match supported)'
+          },
+          {
+            in: 'query',
+            name: 'community',
+            required: false,
+            schema: { type: 'string', default: 'hive-173115' },
+            description: 'Community code to filter by'
+          }
+        ]
+      })
+    },
 
     // V2 Profile Endpoints
     '/api/v2/profile': {
@@ -428,6 +467,29 @@ export const swaggerDocument = {
       post: createEndpoint({
         tags: ['Cron Jobs'],
         summary: 'Trigger V2 leaderboard update (cron job)'
+      })
+    },
+    '/api/cron/highest-paid': {
+      get: createEndpoint({
+        tags: ['Cron Jobs'],
+        summary: 'Update highest paid posts cache',
+        description: 'Refreshes the in-memory cache of highest paid posts. Called automatically every 15 minutes by Vercel Cron.',
+        parameters: [
+          {
+            in: 'query',
+            name: 'limit',
+            required: false,
+            schema: { type: 'integer', default: 500, maximum: 1000 },
+            description: 'Number of posts to cache (max: 1000)'
+          },
+          {
+            in: 'query',
+            name: 'community',
+            required: false,
+            schema: { type: 'string', default: 'hive-173115' },
+            description: 'Community code'
+          }
+        ]
       })
     }
   }
