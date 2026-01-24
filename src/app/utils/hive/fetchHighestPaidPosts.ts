@@ -34,7 +34,7 @@ export async function fetchHighestPaidPosts(
     days: number | null = null
 ): Promise<{ rows: HighestPaidPost[]; total: number }> {
     // Build the date filter condition
-    const dateCondition = days !== null 
+    const dateCondition = days !== null
         ? `AND c.created >= NOW() - INTERVAL '${days} days'`
         : '';
 
